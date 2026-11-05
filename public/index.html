@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Đùng!</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;600;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- HOME -->
+  <section id="home" class="screen active">
+    <div class="home-wrap">
+      <div class="logo">
+        <svg class="logo-cracker" viewBox="0 0 64 120" aria-hidden="true"><use href="#crackerArt" /></svg>
+        <h1>Đùng!</h1>
+        <p class="tag">Nói nhanh, nói hiếm — đừng để pháo nổ trên tay!</p>
+      </div>
+
+      <div class="card">
+        <label class="field">
+          <span>Tên của bạn</span>
+          <input id="nameInput" maxlength="16" placeholder="VD: Tuấn" autocomplete="nickname" />
+        </label>
+      </div>
+
+      <div class="card">
+        <h2>Tạo phòng</h2>
+        <button id="createBtn" class="btn btn-gold">Tạo phòng mới</button>
+      </div>
+
+      <div class="card">
+        <h2>Vào bằng mã</h2>
+        <div class="row">
+          <input id="codeInput" class="code-input" maxlength="4" placeholder="ABCD" autocapitalize="characters" />
+          <button id="joinBtn" class="btn btn-red">Vào</button>
+        </div>
+        <p id="homeError" class="error"></p>
+      </div>
+
+      <details class="card how">
+        <summary>Cách chơi</summary>
+        <ol>
+          <li>Mỗi vòng có một chủ đề, VD “Kể tên một tỉnh thành”.</li>
+          <li>Đến lượt bạn thì gõ một câu trả lời chưa ai nói. Đúng thì pháo chuyền sang người kế.</li>
+          <li>Ngòi pháo cháy ngầm — không biết lúc nào nổ. Nổ trên tay ai thì người đó mất một ❤.</li>
+          <li>Câu trả lời càng hiếm càng nhiều điểm. Đủ điểm sẽ được thêm ❤.</li>
+          <li>Hết ❤ là bị loại. Người cuối cùng còn trụ lại thắng!</li>
+        </ol>
+        <p class="muted">Gõ có dấu hay không dấu đều được.</p>
+      </details>
+    </div>
+  </section>
+
+  <!-- LOBBY -->
+  <section id="lobby" class="screen">
+    <div class="lobby-wrap">
+      <div class="card code-card">
+        <span class="muted">Mã phòng</span>
+        <div id="lobbyCode" class="big-code">----</div>
+        <button id="copyLinkBtn" class="btn btn-ghost small">Sao chép link mời</button>
+      </div>
+
+      <div class="card">
+        <h2>Người chơi <span id="seatCount" class="muted"></span></h2>
+        <ul id="playerList" class="player-list"></ul>
+      </div>
+
+      <div class="card">
+        <h2>Cài đặt phòng</h2>
+        <div id="settingsBox" class="settings"></div>
+        <p id="settingsNote" class="muted small-text"></p>
+      </div>
+
+      <button id="startBtn" class="btn btn-gold big">Bắt đầu</button>
+      <p id="lobbyWait" class="muted center"></p>
+      <button id="leaveBtn" class="btn btn-ghost">Rời phòng</button>
+    </div>
+  </section>
+
+  <!-- GAME -->
+  <section id="game" class="screen">
+    <header class="game-top">
+      <div class="pill">Phòng <b id="gameCode"></b></div>
+      <div class="pill">Vòng <b id="roundNum">1</b></div>
+    </header>
+
+    <div class="prompt-card">
+      <div class="prompt-label">Chủ đề</div>
+      <div id="promptText" class="prompt-text"></div>
+      <div id="usedCount" class="prompt-sub"></div>
+    </div>
+
+    <div id="arena" class="arena">
+      <div id="cracker" class="cracker">
+        <svg viewBox="0 0 64 120" aria-hidden="true"><use href="#crackerArt" /></svg>
+        <div id="spark" class="spark"></div>
+      </div>
+      <div id="boomText" class="boom-text">ĐÙNG!</div>
+    </div>
+
+    <footer class="game-bottom">
+      <div class="meter" title="Điểm để đổi thêm ❤">
+        <div class="meter-label"><span id="myPoints">0</span> điểm · ❤ kế: <span id="myBank">0</span>/<span id="ppHeart">0</span></div>
+        <div class="meter-bar"><div id="meterFill"></div></div>
+      </div>
+      <form id="answerForm" class="answer-row" autocomplete="off">
+        <input id="answerInput" maxlength="40" placeholder="Đợi lượt…" disabled enterkeyhint="send" />
+        <button id="sendBtn" class="btn btn-red" disabled>Gửi</button>
+      </form>
+      <p id="turnHint" class="turn-hint"></p>
+    </footer>
+  </section>
+
+  <!-- END -->
+  <section id="end" class="screen">
+    <div class="lobby-wrap">
+      <div class="card center">
+        <div class="trophy">🏮</div>
+        <h2 id="winnerText"></h2>
+      </div>
+      <div class="card">
+        <h2>Bảng điểm</h2>
+        <ol id="scoreList" class="score-list"></ol>
+      </div>
+      <button id="againBtn" class="btn btn-gold big">Chơi lại</button>
+      <p id="againWait" class="muted center"></p>
+      <button id="endLeaveBtn" class="btn btn-ghost">Rời phòng</button>
+    </div>
+  </section>
+
+  <div id="toast" class="toast"></div>
+  <div id="flash" class="flash"></div>
+
+  <svg width="0" height="0" style="position:absolute">
+    <defs>
+      <linearGradient id="crRed" x1="0" x2="1">
+        <stop offset="0" stop-color="#9e0f16" />
+        <stop offset=".45" stop-color="#e3262f" />
+        <stop offset="1" stop-color="#8a0c12" />
+      </linearGradient>
+      <linearGradient id="crGold" x1="0" x2="1">
+        <stop offset="0" stop-color="#b8861b" />
+        <stop offset=".5" stop-color="#ffd970" />
+        <stop offset="1" stop-color="#a87812" />
+      </linearGradient>
+      <symbol id="crackerArt" viewBox="0 0 64 120">
+        <path d="M32 30 C 34 20, 26 14, 36 4" fill="none" stroke="#5a3a1a" stroke-width="3" stroke-linecap="round" />
+        <rect x="12" y="30" width="40" height="84" rx="8" fill="url(#crRed)" />
+        <rect x="12" y="36" width="40" height="7" fill="url(#crGold)" />
+        <rect x="12" y="101" width="40" height="7" fill="url(#crGold)" />
+        <text x="32" y="80" text-anchor="middle" font-size="22" font-weight="900" fill="#ffd970" font-family="Be Vietnam Pro, sans-serif">福</text>
+      </symbol>
+    </defs>
+  </svg>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
