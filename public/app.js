@@ -412,11 +412,11 @@ function setBubble(playerId, text, cls, ms = 2600) {
   if (ms) bubbleTimers.set(playerId, setTimeout(() => b.classList.remove('show'), ms));
 }
 
-function floatText(playerId, text) {
+function floatText(playerId, text, cls = '') {
   const el = seatEls.get(playerId);
   if (!el) return;
   const f = document.createElement('div');
-  f.className = 'float-pts';
+  f.className = `float-pts ${cls}`;
   f.textContent = text;
   el.appendChild(f);
   setTimeout(() => f.remove(), 1500);
@@ -518,7 +518,7 @@ function renderGame() {
       $('turnHint').textContent = '';
     } else if (mine) {
       input.placeholder = 'Gõ câu trả lời…';
-      $('turnHint').textContent = input.value.trim() ? 'Tới lượt bạn — bấm BAY!' : 'Tới lượt bạn — sai thì gõ lại, hết giờ là nổ!';
+      $('turnHint').textContent = input.value.trim() ? 'Tới lượt bạn — bấm BAY!' : 'Tới lượt bạn — hết giờ là nổ!';
       if (input.value) sendTyping();
       setTimeout(() => input.focus(), 30);
     } else {
@@ -614,7 +614,8 @@ function onAnswer(a) {
   if (a.ok) {
     if (a.playerId === me) $('answerInput').value = '';
     setBubble(a.playerId, a.text, 'ok');
-    floatText(a.playerId, `+${a.points} · ${TIER_NAMES[a.tier]}${a.gainedHeart ? ' +♥' : ''}`);
+    floatText(a.playerId, `+${a.points} · ${TIER_NAMES[a.tier]}${a.gainedHeart ? ' +♥' : ''}`, `tier${a.tier}`);
+    celebrate(a);
   } else {
     setBubble(a.playerId, a.text || a.reason, 'bad');
     const who = state.players.find((p) => p.id === a.playerId);
@@ -672,6 +673,74 @@ function explodeAt(x, y, big) {
   void game.offsetWidth;
   game.classList.add(big ? 'quake-big' : 'quake');
   setTimeout(() => game.classList.remove('quake', 'quake-big'), big ? 900 : 550);
+}
+
+// Rarer answers get bigger celebrations: sparkles (khá hiếm), a banner and a loop (hiếm), a gold banner with confetti (có một không hai).
+function sparkleAt(x, y, count, colors, reach) {
+  const arena = $('arena');
+  for (let i = 0; i < count; i++) {
+    const d = document.createElement('div');
+    d.className = 'spark-px';
+    const s = 4 + Math.floor(Math.random() * 6);
+    d.style.width = d.style.height = `${s}px`;
+    d.style.background = colors[i % colors.length];
+    d.style.left = `${x}px`;
+    d.style.top = `${y}px`;
+    arena.appendChild(d);
+    const a = (i / count) * Math.PI * 2 + Math.random() * 0.4;
+    const dist = reach * (0.6 + Math.random() * 0.6);
+    d.animate([
+      { transform: 'translate(-50%, -50%) scale(1)', opacity: 1 },
+      { transform: `translate(calc(-50% + ${Math.cos(a) * dist}px), calc(-50% + ${Math.sin(a) * dist}px)) scale(0.4)`, opacity: 0 },
+    ], { duration: 700 + Math.random() * 500, easing: 'cubic-bezier(.1,.8,.3,1)', fill: 'forwards' }).onfinish = () => d.remove();
+  }
+}
+
+function confetti(count) {
+  const arena = $('arena');
+  const colors = ['#ffd23f', '#ff5fa8', '#5ff2ff', '#7dffa0', '#ffffff', '#ff9f1c'];
+  const w = arena.clientWidth;
+  const h = arena.clientHeight;
+  for (let i = 0; i < count; i++) {
+    const c = document.createElement('div');
+    c.className = 'confetti';
+    c.style.background = colors[i % colors.length];
+    c.style.left = `${Math.random() * w}px`;
+    c.style.top = '-20px';
+    arena.appendChild(c);
+    const drift = (Math.random() - 0.5) * 120;
+    c.animate([
+      { transform: 'translate(0, 0) rotate(0deg)', opacity: 1 },
+      { transform: `translate(${drift}px, ${h + 60}px) rotate(${360 + Math.random() * 720}deg)`, opacity: 0.9 },
+    ], { duration: 1600 + Math.random() * 1400, delay: Math.random() * 500, easing: 'linear', fill: 'forwards' }).onfinish = () => c.remove();
+  }
+}
+
+function celebrate(a) {
+  const seat = seatEls.get(a.playerId);
+  if (!seat || a.tier < 2) return;
+  const x = Number(seat.dataset.x);
+  const y = Number(seat.dataset.y);
+  if (a.tier === 2) { sparkleAt(x, y, 14, ['#7dffa0', '#ffffff', '#5ff2ff'], 60); return; }
+  sparkleAt(x, y, a.tier === 4 ? 36 : 24, a.tier === 4 ? ['#ffd23f', '#ffffff', '#ff9f1c'] : ['#5ff2ff', '#ffffff', '#ff5fa8'], a.tier === 4 ? 150 : 100);
+  seat.classList.remove('loop');
+  void seat.offsetWidth;
+  seat.classList.add('loop');
+  setTimeout(() => seat.classList.remove('loop'), 1000);
+  const p = state.players.find((q) => q.id === a.playerId);
+  const b = $('rareBanner');
+  b.className = 'rare-banner';
+  $('rareLabel').textContent = a.tier === 4 ? 'CÓ MỘT KHÔNG HAI!' : 'HIẾM!';
+  $('rareText').textContent = `${p ? (a.playerId === me ? 'Bạn' : p.name) : ''}: ${a.text} · +${a.points}`;
+  void b.offsetWidth;
+  b.classList.add('show', `tier${a.tier}`);
+  if (a.tier === 4) {
+    confetti(70);
+    $('flash').classList.remove('show', 'gold');
+    void $('flash').offsetWidth;
+    $('flash').classList.add('show', 'gold');
+    if (navigator.vibrate && a.playerId === me) navigator.vibrate([40, 30, 40, 30, 120]);
+  }
 }
 
 function onBoom({ playerId, eliminated }) {

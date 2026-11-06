@@ -316,6 +316,35 @@ button { font-family: inherit; }
 .score-list { margin: 0; padding-left: 30px; display: grid; gap: 4px; font-size: 24px; }
 .score-list b { float: right; color: var(--pink); font-weight: 400; }
 
+/* ---------- Rare answers ---------- */
+.float-pts.tier2 { color: var(--ok); font-size: 26px; }
+.float-pts.tier3 { color: var(--cyan); font-size: 30px; }
+.float-pts.tier4 { color: var(--gold); font-size: 34px; }
+.spark-px { position: absolute; z-index: 6; pointer-events: none; box-shadow: 0 0 6px 2px rgba(255, 255, 255, 0.7); }
+.confetti { position: absolute; z-index: 6; width: 8px; height: 12px; pointer-events: none; box-shadow: 0 0 0 1px var(--ink); }
+.seat.loop .pl { animation: loop 0.9s steps(12) !important; }
+@keyframes loop { 0% { transform: rotate(0) translateY(0); } 50% { transform: rotate(-180deg) translateY(-26px); } 100% { transform: rotate(-360deg) translateY(0); } }
+.rare-banner {
+  position: absolute; left: 50%; top: 40%; transform: translate(-50%, -50%); z-index: 7; pointer-events: none;
+  text-align: center; opacity: 0; width: max-content; max-width: 94%;
+}
+.rare-label { font-size: clamp(40px, 11vw, 72px); letter-spacing: 4px; line-height: 1; color: #fff; }
+.rare-text { margin-top: 6px; font-size: clamp(20px, 5vw, 28px); background: var(--panel); border: 3px solid var(--panel-edge); padding: 4px 12px; display: inline-block; }
+.rare-banner.tier3 .rare-label { text-shadow: 3px 0 var(--cyan), -3px 0 var(--cyan), 0 3px var(--cyan), 0 -3px var(--cyan), 0 8px var(--ink); }
+.rare-banner.tier3 .rare-text { color: var(--cyan); border-color: var(--cyan); }
+.rare-banner.tier4 .rare-label { color: var(--gold); text-shadow: 3px 0 #b25a00, -3px 0 #b25a00, 0 3px #b25a00, 0 -3px #b25a00, 0 8px var(--ink), 0 0 30px rgba(255, 210, 63, 0.9); }
+.rare-banner.tier4 .rare-text { color: var(--gold); border-color: var(--gold); box-shadow: 0 0 18px rgba(255, 210, 63, 0.6); }
+.rare-banner.show.tier3 { animation: rare 1.6s steps(14) forwards; }
+.rare-banner.show.tier4 { animation: rare 2.4s steps(18) forwards; }
+@keyframes rare {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(0.3) rotate(-6deg); }
+  15% { opacity: 1; transform: translate(-50%, -50%) scale(1.15) rotate(3deg); }
+  25% { transform: translate(-50%, -50%) scale(1) rotate(0); }
+  80% { opacity: 1; }
+  100% { opacity: 0; transform: translate(-50%, -62%) scale(1); }
+}
+.flash.gold { background: #ffe680; }
+
 /* ---------- Explosions ---------- */
 .fireball { position: absolute; z-index: 6; pointer-events: none; box-shadow: 0 0 0 4px var(--ink); }
 .debris { position: absolute; z-index: 6; pointer-events: none; box-shadow: 0 0 0 2px var(--ink); }
