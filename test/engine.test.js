@@ -6,12 +6,13 @@ Object.assign(config, { turnFloorMs: 30, popPauseMs: 20, topicIntroMs: 0 });
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
 // accent and prefix handling
-const countries = CATS.find((c) => c.id === 'world-countries');
-assert.equal(findAnswer(countries, 'Pháp', new Set()).label, 'pháp');
-assert.equal(findAnswer(countries, 'nuoc phap', new Set()).label, 'pháp');
-assert.equal(findAnswer(countries, 'NHAT BAN!', new Set()).label, 'nhật bản');
-assert.equal(findAnswer(countries, 'campuchiaa', new Set()).label, 'campuchia');
-assert.equal(findAnswer(countries, 'xyz không có', new Set()), null);
+const europe = CATS.find((c) => c.id === 'europe-countries');
+assert.equal(findAnswer(europe, 'Pháp', new Set()).label, 'pháp');
+assert.equal(findAnswer(europe, 'nuoc phap', new Set()).label, 'pháp');
+assert.equal(findAnswer(europe, 'xyz không có', new Set()), null);
+const asia = CATS.find((c) => c.id === 'asia-oceania-countries');
+assert.equal(findAnswer(asia, 'NHAT BAN!', new Set()).label, 'nhật bản');
+assert.equal(findAnswer(asia, 'campuchiaa', new Set()).label, 'campuchia');
 const places = CATS.find((c) => c.id === 'east-asia-places');
 assert.equal(findAnswer(places, 'thuong hai', new Set()).label, 'thượng hải');
 assert.equal(findAnswer(places, 'hải phòng', new Set()), null);
