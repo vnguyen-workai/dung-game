@@ -53,12 +53,17 @@
     'bang', 'tiểu bang', 'quốc gia', 'đất nước', 'ngôn ngữ', 'ngôn ngữ lập trình',
   ].map((p) => exactForm(p)).sort((a, b) => b.length - a.length);
   const PREFIXES_LOOSE = [...new Set(PREFIXES.map((p) => normalize(p)))].sort((a, b) => b.length - a.length);
+  // Without accents these prefixes are also common name words (quận/Quan, trường/Trương, tướng/Tường, hãng/Hằng…),
+  // so they are only stripped when at least two words remain ("quan ba dinh" → "ba dinh", but not "quan vu").
+  const NAME_LIKE = new Set(['quan', 'truong', 'tuong', 'hang', 'nhac', 'ho', 'than', 'thanh', 'co', 'cung', 'hoa', 'ban', 'nhom', 'cho', 'thac', 'bai', 'tranh', 'den', 'dong', 'mon', 'mau', 'vua', 'giai']);
 
   function stripPrefix(s, list = PREFIXES) {
     for (let pass = 0; pass < 2; pass++) {
       const p = list.find((x) => s.startsWith(`${x} `));
       if (!p) break;
-      s = s.slice(p.length + 1);
+      const rest = s.slice(p.length + 1);
+      if (list === PREFIXES_LOOSE && NAME_LIKE.has(p) && !rest.includes(' ')) break;
+      s = rest;
     }
     return s;
   }
