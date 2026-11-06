@@ -63,11 +63,13 @@
     'trang phục', 'siêu xe', 'xe', 'hãng thời trang', 'thương hiệu thời trang', 'trang sức', 'mỹ phẩm',
     'chuỗi', 'nhà hàng', 'quán', 'tiệm', 'xương', 'cơ quan', 'định luật', 'định lý', 'nguyên lý', 'siêu anh hùng',
     'phản diện', 'sở thích', 'đồ ăn vặt', 'ăn vặt', 'snack', 'món ăn',
+    'cầu', 'cây cầu', 'tòa nhà', 'tháp', 'lâu đài', 'cung điện', 'bảo tàng', 'tay vợt', 'tay đua', 'đội đua',
+    'di sản', 'trò chơi', 'board game', 'vũ khí', 'khí tài', 'loài', 'con vật',
   ].map((p) => exactForm(p)).sort((a, b) => b.length - a.length);
   const PREFIXES_LOOSE = [...new Set(PREFIXES.map((p) => normalize(p)))].sort((a, b) => b.length - a.length);
   // Without accents these prefixes are also common name words (quận/Quan, trường/Trương, tướng/Tường, hãng/Hằng…),
   // so they are only stripped when two words or a long word remain ("quan ba dinh" → "ba dinh", "hang seiko" → "seiko", but not "quan vu").
-  const NAME_LIKE = new Set(['quan', 'truong', 'tuong', 'hang', 'nhac', 'ho', 'than', 'thanh', 'co', 'cung', 'hoa', 'ban', 'nhom', 'cho', 'thac', 'bai', 'tranh', 'den', 'dong', 'mon', 'mau', 'vua', 'giai', 'pho', 'duong', 'tran', 'do', 'may', 'cai', 'bo', 'chiec', 'mua', 'nhay', 'chat', 'dieu', 'vo', 'kich', 'ten', 'tui', 'xe', 'quan', 'tiem']);
+  const NAME_LIKE = new Set(['quan', 'truong', 'tuong', 'hang', 'nhac', 'ho', 'than', 'thanh', 'co', 'cung', 'hoa', 'ban', 'nhom', 'cho', 'thac', 'bai', 'tranh', 'den', 'dong', 'mon', 'mau', 'vua', 'giai', 'pho', 'duong', 'tran', 'do', 'may', 'cai', 'bo', 'chiec', 'mua', 'nhay', 'chat', 'dieu', 'vo', 'kich', 'ten', 'tui', 'xe', 'quan', 'tiem', 'cau', 'thap', 'loai']);
 
   function stripPrefix(s, list = PREFIXES) {
     for (let pass = 0; pass < 2; pass++) {
