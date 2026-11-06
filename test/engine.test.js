@@ -1,7 +1,7 @@
 const assert = require('assert');
 const { Room, LIMITS, config, CATS, findAnswer } = require('../public/engine');
 
-Object.assign(config, { fuseMinMs: 300, fuseMaxMs: 700, popPauseMs: 100 });
+Object.assign(config, { turnFloorMs: 300, popPauseMs: 100 });
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
 // accent handling
@@ -34,7 +34,7 @@ assert.equal(findAnswer(prov, 'Đà   Nẵng!', new Set()).label, 'đà nẵng')
   assert.equal(st.settings.seats, 10);
   room.setSettings('h', { lives: 2, minTurn: 1, seats: 99, heartCap: 5, pointsPerHeart: 100 });
   assert.equal(st.settings.seats, 20);
-  assert.equal(st.settings.minTurn, 3);
+  assert.equal(st.settings.minTurn, 4);
   for (let i = 10; i < 20; i++) assert.ok(room.join(`p${i}`, `P${i}`).ok);
   assert.equal(st.players.length, 20);
   assert.equal(room.join('late', 'L').error, 'Phòng đã đầy');
@@ -59,7 +59,7 @@ assert.equal(findAnswer(prov, 'Đà   Nẵng!', new Set()).label, 'đà nẵng')
 
   // turn mechanics
   const cat = CATS.find((c) => c.prompt === st.round.prompt);
-  const labels = [...new Set([...cat.exact.values()].map((v) => v.label))];
+  const labels = [...new Set([...cat.exact.values()].flat().map((v) => v.label))];
   const first = st.round.turnId;
   room.answer(first, 'xyz không có');
   assert.equal(last('answer').reason, 'Không hợp lệ');
@@ -77,6 +77,29 @@ assert.equal(findAnswer(prov, 'Đà   Nẵng!', new Set()).label, 'đà nẵng')
   room.leave(cur);
   assert.notEqual(st.round.turnId, cur);
   assert.equal(st.players.find((p) => p.id === cur).alive, false);
+
+  // turns get shorter with each correct answer, and a topic ends after maxAnswers
+  {
+    let t = null;
+    const events2 = [];
+    const tr = new Room('TIME', 'a', 'A', (k, d) => { events2.push(k); if (k === 'state') t = d; });
+    tr.join('b', 'B');
+    tr.setSettings('a', { ...t.settings, minTurn: 10 });
+    tr.start('a');
+    assert.equal(t.round.turnMs, 10000);
+    const c = CATS.find((x) => x.prompt === t.round.prompt);
+    const all = [...new Set([...c.exact.values()].flat().map((v) => v.label))];
+    tr.answer(t.round.turnId, all[0]);
+    assert.equal(t.round.turnMs, 9000, 'one second shorter after a correct answer');
+    for (let i = 1; i < config.maxAnswers; i++) tr.answer(t.round.turnId, all[i]);
+    assert.ok(events2.includes('topicDone'), 'topic ends after maxAnswers');
+    assert.equal(t.round.turnStartedAt, 0);
+    assert.ok(t.players.every((p) => p.hearts === t.settings.lives || p.hearts > t.settings.lives), 'nobody lost a heart');
+    await wait(150);
+    assert.notEqual(t.round.prompt, c.prompt, 'new topic');
+    assert.equal(t.round.turnMs, 10000, 'timer resets on a new topic');
+    tr.close();
+  }
 
   // play to the end
   const deadline = Date.now() + 60000;

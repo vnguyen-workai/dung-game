@@ -4,7 +4,7 @@ const { Net, online } = window.DungNet;
 
 const SETTING_DEFS = [
   { key: 'lives', label: 'Số ❤ ban đầu' },
-  { key: 'minTurn', label: 'Thời gian mỗi lượt', hint: 'ít nhất', suffix: 's' },
+  { key: 'minTurn', label: 'Thời gian mỗi lượt', hint: 'giảm 1s sau mỗi câu đúng', suffix: 's' },
   { key: 'seats', label: 'Số ghế' },
   { key: 'heartCap', label: 'Tối đa ❤' },
   { key: 'pointsPerHeart', label: 'Điểm đổi 1 ❤', hint: 'trả lời hiếm được nhiều điểm', step: 50 },
@@ -90,7 +90,7 @@ function onMessage(m) {
   if (m.t === 'typing') { onEvent(m); return; }
   if (m.t === 'closed' && m.from === hostId) { hostGone(); return; }
   if (room) hostHandle(m);
-  else if (['state', 'answer', 'boom'].includes(m.t)) onEvent(m);
+  else if (['state', 'answer', 'boom', 'topicDone'].includes(m.t)) onEvent(m);
 }
 
 function onLeave(id) {
@@ -347,18 +347,57 @@ function layoutSeats() {
   moveMascot();
 }
 
+// The plane stays in the middle and points its nose at whoever must answer.
+let aim = { angle: 0, flip: false, tx: 0, ty: 0 };
 function moveMascot() {
-  const cr = $('mascot');
   const arena = $('arena');
   const r = state.round;
   const seat = r && r.turnStartedAt ? seatEls.get(r.turnId) : null;
   const cx = arena.clientWidth / 2;
   const cy = arena.clientHeight / 2;
-  const n = state.players.length;
-  const pull = n > 8 ? 0.5 : n > 3 ? 0.34 : 0.12;
-  cr.style.left = `${seat ? cx + (Number(seat.dataset.x) - cx) * pull : cx}px`;
-  cr.style.top = `${seat ? cy + (Number(seat.dataset.y) - cy) * pull : cy}px`;
-  cr.classList.toggle('facing-left', !!seat && Number(seat.dataset.x) < cx - 4);
+  const cr = $('mascot');
+  cr.style.left = `${cx}px`;
+  cr.style.top = `${cy}px`;
+  if (seat) {
+    const dx = Number(seat.dataset.x) - cx;
+    const dy = Number(seat.dataset.y) - cy;
+    const angle = (Math.atan2(dy, dx) * 180) / Math.PI;
+    aim = { angle, flip: Math.abs(angle) > 90, tx: Number(seat.dataset.x), ty: Number(seat.dataset.y) };
+  }
+  applyMascotTransform(seat ? currentScale : 1);
+}
+
+let currentScale = 1;
+function applyMascotTransform(scale) {
+  currentScale = scale;
+  const r = state?.round;
+  const aiming = r && r.turnStartedAt;
+  $('mascot').style.transform = aiming
+    ? `translate(-50%, -50%) rotate(${aim.angle}deg) scale(${scale}, ${aim.flip ? -scale : scale})`
+    : 'translate(-50%, -50%)';
+}
+
+let lastShot = 0;
+function fireBullet(fraction) {
+  const arena = $('arena');
+  const cr = $('mascot');
+  const cx = arena.clientWidth / 2;
+  const cy = arena.clientHeight / 2;
+  const rad = (aim.angle * Math.PI) / 180;
+  const nose = (cr.offsetWidth / 2) * currentScale * 0.85;
+  const x0 = cx + Math.cos(rad) * nose;
+  const y0 = cy + Math.sin(rad) * nose;
+  const b = document.createElement('div');
+  b.className = 'bullet';
+  b.style.left = '0px';
+  b.style.top = '0px';
+  arena.appendChild(b);
+  const spread = (Math.random() - 0.5) * 24;
+  const anim = b.animate([
+    { transform: `translate(${x0}px, ${y0}px) rotate(${aim.angle}deg)`, opacity: 1 },
+    { transform: `translate(${aim.tx + spread}px, ${aim.ty - 10 + spread / 2}px) rotate(${aim.angle}deg)`, opacity: 0.9 },
+  ], { duration: Math.max(160, 380 - fraction * 200), easing: 'linear' });
+  anim.onfinish = () => b.remove();
 }
 
 function setBubble(playerId, text, cls, ms = 2600) {
@@ -396,23 +435,31 @@ function updateFuse() {
   if (!r || !r.turnStartedAt || state.status !== 'playing') {
     cr.classList.add('idle');
     setMood('sleep');
+    applyMascotTransform(1);
     timer.classList.remove('danger');
     $('timerText').textContent = '–';
     $('timerFill').style.strokeDashoffset = 0;
     return;
   }
-  const t = (performance.now() - turnLocalStart) / 1000;
-  const m = state.settings.minTurn;
+  const total = r.turnMs || state.settings.minTurn * 1000;
+  const elapsed = performance.now() - turnLocalStart;
+  const f = Math.min(1, elapsed / total);
   let level = 0;
-  if (t > m * 1.2) level = 3;
-  else if (t > m * 0.8) level = 2;
-  else if (t > m * 0.4) level = 1;
+  if (f > 0.85) level = 3;
+  else if (f > 0.65) level = 2;
+  else if (f > 0.4) level = 1;
   if (level) cr.classList.add(`shake${level}`);
-  setMood(level >= 2 ? 'angry' : 'awake');
-  const left = Math.max(0, m - t);
-  timer.classList.toggle('danger', left <= 0);
+  setMood(f > 0.6 ? 'angry' : 'awake');
+  applyMascotTransform(1 + f * 0.45);
+  const now = performance.now();
+  if (now - lastShot > 520 - f * 420) {
+    lastShot = now;
+    fireBullet(f);
+  }
+  const left = Math.max(0, total - elapsed) / 1000;
+  timer.classList.toggle('danger', left <= 3);
   $('timerText').textContent = left > 0 ? Math.ceil(left) : '!';
-  $('timerFill').style.strokeDashoffset = 119.4 * (1 - left / m);
+  $('timerFill').style.strokeDashoffset = 119.4 * f;
 }
 
 function renderGame() {
@@ -420,7 +467,7 @@ function renderGame() {
   $('gameCode').textContent = state.code;
   $('roundNum').textContent = r ? r.number : 1;
   $('promptText').textContent = r ? r.prompt : '';
-  $('usedCount').textContent = r && r.usedCount ? `${r.usedCount} câu đã nói` : 'chưa ai trả lời';
+  $('usedCount').textContent = r ? `câu đúng ${r.usedCount}/${r.maxAnswers}` : '';
 
   const myP = state.players.find((p) => p.id === me);
   const pph = state.settings.pointsPerHeart;
@@ -437,22 +484,27 @@ function renderGame() {
     turnLocalStart = performance.now();
     const input = $('answerInput');
     const mine = !!key && r.turnId === me && myP?.alive;
-    input.disabled = !mine;
+    // Alive players can type ahead at any time; only the player whose turn it is can send.
+    input.disabled = !myP?.alive;
     $('sendBtn').disabled = !mine;
     input.classList.toggle('myturn', mine);
     input.classList.remove('shake');
-    input.value = '';
+    if (r && r.number !== typedForRound) { input.value = ''; typedForRound = r.number; }
     const current = state.players.find((p) => p.id === r?.turnId);
-    if (!key) {
-      input.placeholder = 'Chuẩn bị vòng mới…';
+    if (myP && !myP.alive) {
+      input.placeholder = 'Bạn đã bị loại';
+      $('turnHint').textContent = 'Bạn đã bị loại — xem tiếp nhé';
+    } else if (!key) {
+      input.placeholder = 'Chuẩn bị chủ đề mới…';
       $('turnHint').textContent = '';
     } else if (mine) {
       input.placeholder = 'Gõ câu trả lời…';
-      $('turnHint').textContent = 'Tới lượt bạn — gõ nhanh trước khi nổ!';
+      $('turnHint').textContent = input.value.trim() ? 'Tới lượt bạn — bấm BAY!' : 'Tới lượt bạn — gõ nhanh trước khi nổ!';
+      if (input.value) sendTyping();
       setTimeout(() => input.focus(), 30);
     } else {
-      input.placeholder = `${current?.name || '…'} đang trả lời…`;
-      $('turnHint').textContent = myP && !myP.alive ? 'Bạn đã bị loại — xem tiếp nhé' : '';
+      input.placeholder = 'Gõ trước, tới lượt thì bấm BAY…';
+      $('turnHint').textContent = `${current?.name || '…'} đang trả lời — bạn có thể gõ trước`;
     }
   }
   layoutSeats();
@@ -462,17 +514,24 @@ function renderGame() {
 $('answerForm').addEventListener('submit', (e) => {
   e.preventDefault();
   const text = $('answerInput').value.trim();
-  if (text) act('answer', { text });
+  if (!text) return;
+  if (state?.round?.turnId !== me || !state.round.turnStartedAt) { toast('Chưa tới lượt bạn — giữ câu trả lời lại nhé'); return; }
+  act('answer', { text });
 });
 
 // Live typing goes straight to everyone (not via the host), throttled to keep message counts low.
 let typingTimer = null;
 let typingLastSent = 0;
+let typedForRound = null;
 function sendTyping() {
   typingTimer = null;
+  if (state?.round?.turnId !== me) return;
   typingLastSent = Date.now();
   net?.send({ t: 'typing', from: me, text: $('answerInput').value.slice(0, 40) });
 }
+$('answerInput').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && $('sendBtn').disabled && $('answerInput').value.trim()) toast('Chưa tới lượt bạn — giữ câu trả lời lại nhé');
+});
 $('answerInput').addEventListener('input', () => {
   if (typingTimer) return;
   typingTimer = setTimeout(sendTyping, Math.max(0, 300 - (Date.now() - typingLastSent)));
@@ -499,6 +558,7 @@ function onEvent(m) {
   if (m.t === 'state') onState(m);
   else if (m.t === 'answer') onAnswer(m);
   else if (m.t === 'boom') onBoom(m);
+  else if (m.t === 'topicDone') toast(`Đủ ${m.count} câu đúng — đổi chủ đề!`);
   else if (m.t === 'typing') onTyping(m);
 }
 
@@ -530,6 +590,7 @@ function onTyping({ from, text }) {
 
 function onAnswer(a) {
   if (a.ok) {
+    if (a.playerId === me) $('answerInput').value = '';
     setBubble(a.playerId, a.text, 'ok');
     floatText(a.playerId, `+${a.points} · ${TIER_NAMES[a.tier]}${a.gainedHeart ? ' +♥' : ''}`);
   } else {
@@ -563,4 +624,4 @@ function onBoom({ playerId, eliminated }) {
 }
 
 window.addEventListener('resize', () => { if (state?.status === 'playing') layoutSeats(); });
-setInterval(() => { if (state?.status === 'playing') updateFuse(); }, 250);
+setInterval(() => { if (state?.status === 'playing') updateFuse(); }, 90);

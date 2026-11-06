@@ -4,16 +4,17 @@
   else root.DungEngine = factory(root.DUNG_CATEGORIES);
 })(this, function (CATEGORIES) {
   const TIER_POINTS = { 1: 10, 2: 30, 3: 60, 4: 100 };
-  const config = { fuseMinMs: 12000, fuseMaxMs: 30000, popPauseMs: 2200 };
+  // Each correct answer makes the next turn shorter; a topic ends after maxAnswers correct answers.
+  const config = { shrinkMs: 1000, turnFloorMs: 3000, maxAnswers: 12, popPauseMs: 2200 };
   const LIMITS = {
     lives: [1, 5],
-    minTurn: [3, 15],
+    minTurn: [4, 20],
     seats: [2, 20],
     heartCap: [1, 9],
     pointsPerHeart: [100, 1000],
   };
   const PLANES = ['tanbinh', 'cotruong', 'sieuthanh', 'chop', 'quaixe'];
-  const DEFAULT_SETTINGS = { lives: 2, minTurn: 8, seats: 20, heartCap: 5, pointsPerHeart: 300 };
+  const DEFAULT_SETTINGS = { lives: 2, minTurn: 10, seats: 20, heartCap: 5, pointsPerHeart: 300 };
 
   function exactForm(s) {
     return String(s)
@@ -34,30 +35,81 @@
       .trim();
   }
 
-  // exact: accented alias -> answer; loose: accent-free alias -> [answers] (several when accents collide, e.g. dứa/dừa)
+  // Generic words players often put in front of an answer ("con mèo", "tỉnh Nghệ An", "ca sĩ Khởi My").
+  const PREFIXES = [
+    'thành phố', 'tp', 'tỉnh', 'quận', 'huyện', 'thị xã', 'sông', 'núi', 'đèo', 'đảo', 'quần đảo', 'vịnh', 'biển', 'bãi biển',
+    'hồ', 'thác', 'chùa', 'đền', 'con', 'quả', 'trái', 'cây', 'hoa', 'món', 'môn', 'nước', 'tiếng', 'đồng', 'ca sĩ', 'rapper',
+    'cầu thủ', 'tuyển thủ', 'vận động viên', 'vđv', 'huấn luyện viên', 'hlv', 'dân tộc', 'lễ hội', 'câu lạc bộ', 'clb', 'đội tuyển',
+    'nhạc sĩ', 'diễn viên', 'danh hài', 'nghệ sĩ', 'mc', 'nhà thơ', 'nhà văn', 'vua', 'bài hát', 'bài', 'phim', 'hãng', 'sân bay',
+    'sân vận động', 'sân', 'trường', 'đại học', 'thủ đô', 'ban nhạc', 'nhóm nhạc', 'nhóm', 'chợ', 'nghề', 'giải', 'game', 'màu',
+  ].map((p) => exactForm(p)).sort((a, b) => b.length - a.length);
+  const PREFIXES_LOOSE = [...new Set(PREFIXES.map((p) => normalize(p)))].sort((a, b) => b.length - a.length);
+
+  function stripPrefix(s, list = PREFIXES) {
+    for (let pass = 0; pass < 2; pass++) {
+      const p = list.find((x) => s.startsWith(`${x} `));
+      if (!p) break;
+      s = s.slice(p.length + 1);
+    }
+    return s;
+  }
+
+  function addTo(map, key, ans) {
+    if (!key) return;
+    if (!map.has(key)) map.set(key, []);
+    if (!map.get(key).includes(ans)) map.get(key).push(ans);
+  }
+
+  // Lookups, strongest first: exact accented alias, accent-free alias, then the same without a generic prefix.
   const CATS = CATEGORIES.map((c) => {
-    const exact = new Map();
-    const loose = new Map();
+    const exact = new Map(), loose = new Map(), exactBare = new Map(), looseBare = new Map();
     for (const [tier, list] of Object.entries(c.answers)) {
       for (const entry of list) {
         const aliases = entry.split('|');
         const ans = { key: exactForm(aliases[0]), label: aliases[0], tier: Number(tier) };
         for (const a of aliases) {
-          exact.set(exactForm(a), ans);
-          const n = normalize(a);
-          if (!loose.has(n)) loose.set(n, []);
-          if (!loose.get(n).includes(ans)) loose.get(n).push(ans);
+          const e = exactForm(a);
+          addTo(exact, e, ans);
+          addTo(loose, normalize(e), ans);
+          const bare = stripPrefix(e);
+          addTo(exactBare, bare, ans);
+          addTo(looseBare, stripPrefix(normalize(e), PREFIXES_LOOSE), ans);
         }
       }
     }
-    return { prompt: c.prompt, exact, loose };
+    return { id: c.id, prompt: c.prompt, exact, loose, exactBare, looseBare };
   });
 
+  function distanceAtMostOne(a, b) {
+    if (Math.abs(a.length - b.length) > 1) return false;
+    let i = 0, j = 0, edits = 0;
+    while (i < a.length && j < b.length) {
+      if (a[i] === b[j]) { i++; j++; continue; }
+      if (++edits > 1) return false;
+      if (a.length > b.length) i++;
+      else if (a.length < b.length) j++;
+      else { i++; j++; }
+    }
+    return edits + (a.length - i) + (b.length - j) <= 1;
+  }
+
   function findAnswer(cat, text, used) {
-    const hit = cat.exact.get(exactForm(text));
+    const e = exactForm(text);
+    const bare = stripPrefix(e);
+    const looseBare = stripPrefix(normalize(e), PREFIXES_LOOSE);
+    const pick = (list) => list && (list.find((a) => !used.has(a.key)) || list[0]);
+    const hit = pick(cat.exact.get(e)) || pick(cat.loose.get(normalize(e)))
+      || pick(cat.exactBare.get(bare)) || pick(cat.exact.get(bare))
+      || pick(cat.looseBare.get(looseBare)) || pick(cat.loose.get(looseBare));
     if (hit) return hit;
-    const options = cat.loose.get(normalize(text)) || [];
-    return options.find((a) => !used.has(a.key)) || options[0] || null;
+    // One typo allowed on longer answers, only when it points to a single answer.
+    const n = looseBare;
+    if (n.length < 6) return null;
+    const found = new Set();
+    for (const [k, list] of cat.loose) {
+      if (k.length >= 6 && distanceAtMostOne(n, k)) list.forEach((a) => found.add(a));
+    }
+    return found.size === 1 ? [...found][0] : null;
   }
 
   function clampSettings(input = {}) {
@@ -107,7 +159,9 @@
           prompt: CATS[r.cat].prompt,
           turnId: this.players[r.turnIdx] && this.players[r.turnIdx].id,
           turnStartedAt: r.turnStartedAt,
+          turnMs: r.turnMs,
           usedCount: r.used.size,
+          maxAnswers: config.maxAnswers,
         },
         winnerId: this.winnerId,
       };
@@ -191,7 +245,7 @@
         cat: this.pickCategory(),
         used: new Set(),
         turnIdx,
-        fuseEnd: Date.now() + config.fuseMinMs + Math.random() * (config.fuseMaxMs - config.fuseMinMs),
+        turnMs: 0,
         turnStartedAt: 0,
       };
       this.startTurn();
@@ -199,11 +253,10 @@
 
     startTurn() {
       const r = this.round;
-      const now = Date.now();
-      r.turnStartedAt = now;
-      r.fuseEnd = Math.max(r.fuseEnd, now + this.settings.minTurn * 1000);
+      r.turnStartedAt = Date.now();
+      r.turnMs = Math.max(config.turnFloorMs, this.settings.minTurn * 1000 - r.used.size * config.shrinkMs);
       clearTimeout(this.timer);
-      this.timer = setTimeout(() => this.explode(), r.fuseEnd - now);
+      this.timer = setTimeout(() => this.explode(), r.turnMs);
       this.broadcast();
     }
 
@@ -261,7 +314,20 @@
       if (player.hearts >= heartCap) player.bank = Math.min(player.bank, pointsPerHeart - 1);
       this.emit('answer', { playerId: id, text: hit.label, ok: true, tier: hit.tier, points: pts, gainedHeart });
       r.turnIdx = this.nextAliveIdx(r.turnIdx);
+      if (r.used.size >= config.maxAnswers) return this.finishTopic();
       this.startTurn();
+    }
+
+    // Enough correct answers on this topic: nobody loses a heart, move to a new topic.
+    finishTopic() {
+      const r = this.round;
+      clearTimeout(this.timer);
+      r.turnStartedAt = 0;
+      this.emit('topicDone', { count: r.used.size });
+      this.broadcast();
+      this.timer = setTimeout(() => {
+        if (this.status === 'playing') this.startRound(r.turnIdx);
+      }, config.popPauseMs);
     }
 
     leave(id) {
@@ -291,5 +357,5 @@
     }
   }
 
-  return { Room, PLANES, config, CATS, LIMITS, normalize, findAnswer, clampSettings };
+  return { Room, PLANES, config, CATS, LIMITS, normalize, stripPrefix, findAnswer, clampSettings };
 });
