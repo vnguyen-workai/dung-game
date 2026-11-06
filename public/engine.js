@@ -46,6 +46,8 @@
     'chủ tịch', 'tổng thống', 'thủ tướng', 'hoàng đế', 'nữ hoàng', 'thần', 'nữ thần', 'thánh', 'hãng xe', 'thương hiệu',
     'ứng dụng', 'app', 'bệnh', 'nguyên tố', 'hành tinh', 'cung', 'môn võ', 'đế chế', 'trận', 'album', 'anime', 'truyện', 'sách',
     'họa sĩ', 'bức tranh', 'tranh', 'nhà soạn nhạc', 'youtuber', 'streamer', 'tỷ phú', 'khủng long', 'thể loại', 'nhạc',
+    'chương trình', 'gameshow', 'game show', 'show', 'sự tích', 'truyện cổ tích', 'cổ tích', 'truyền thuyết', 'công ty',
+    'tập đoàn', 'ngân hàng', 'nhân vật',
   ].map((p) => exactForm(p)).sort((a, b) => b.length - a.length);
   const PREFIXES_LOOSE = [...new Set(PREFIXES.map((p) => normalize(p)))].sort((a, b) => b.length - a.length);
 

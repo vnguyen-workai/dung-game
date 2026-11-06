@@ -1,6 +1,7 @@
-// Usage: node content/audit.js <tests.json>
+// Usage: node content/audit.js <tests.json> [--wrong]
 // tests.json: { "<category id>": ["answer a player might type", ...], ... }
 // Runs every answer through the real game matcher (built from all content files) and lists the ones it rejects.
+// With --wrong, the file holds answers that must NOT be accepted, and it lists the ones that wrongly are.
 const fs = require('fs');
 const path = require('path');
 const Module = require('module');
@@ -21,6 +22,7 @@ m._compile(src, enginePath);
 const { CATS, findAnswer } = m.exports;
 
 const tests = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
+const wrongMode = process.argv.includes('--wrong');
 let total = 0, rejected = 0;
 for (const [id, answers] of Object.entries(tests)) {
   const cat = CATS.find((c) => c.id === id);
@@ -29,8 +31,9 @@ for (const [id, answers] of Object.entries(tests)) {
   for (const a of answers) {
     total++;
     const hit = findAnswer(cat, a, new Set());
-    if (!hit) { rejected++; misses.push(a); }
+    if (wrongMode ? hit : !hit) { rejected++; misses.push(wrongMode ? `${a} → ${hit.label}` : a); }
   }
-  console.log(`${id}: ${answers.length - misses.length}/${answers.length} accepted${misses.length ? `  ✗ ${misses.join(' | ')}` : ''}`);
+  if (wrongMode) console.log(`${id}: ${misses.length ? `✗ wrongly accepted: ${misses.join(' | ')}` : `all ${answers.length} wrong answers rejected`}`);
+  else console.log(`${id}: ${answers.length - misses.length}/${answers.length} accepted${misses.length ? `  ✗ ${misses.join(' | ')}` : ''}`);
 }
-console.log(`\n${total - rejected}/${total} accepted, ${rejected} rejected`);
+console.log(wrongMode ? `\n${rejected} of ${total} wrong answers were accepted` : `\n${total - rejected}/${total} accepted, ${rejected} rejected`);
