@@ -4,7 +4,7 @@ const { Net, online } = window.DungNet;
 
 const SETTING_DEFS = [
   { key: 'lives', label: 'Số ❤ ban đầu' },
-  { key: 'minTurn', label: 'Thời gian mỗi lượt', hint: 'giảm 1s sau mỗi câu đúng', suffix: 's' },
+  { key: 'minTurn', label: 'Thời gian mỗi lượt', hint: 'số giây cho mỗi câu trả lời', suffix: 's' },
   { key: 'seats', label: 'Số ghế' },
   { key: 'heartCap', label: 'Tối đa ❤' },
   { key: 'pointsPerHeart', label: 'Điểm đổi 1 ❤', hint: 'trả lời hiếm được nhiều điểm', step: 50 },

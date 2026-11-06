@@ -83,7 +83,7 @@ assert.equal(findAnswer(prov, 'Đà   Nẵng!', new Set()).label, 'đà nẵng')
   assert.notEqual(st.round.turnId, cur);
   assert.equal(st.players.find((p) => p.id === cur).alive, false);
 
-  // turns get shorter with each correct answer, and a topic ends after maxAnswers
+  // every turn gets the full time, and a topic ends after maxAnswers
   {
     let t = null;
     const events2 = [];
@@ -95,7 +95,7 @@ assert.equal(findAnswer(prov, 'Đà   Nẵng!', new Set()).label, 'đà nẵng')
     const c = CATS.find((x) => x.prompt === t.round.prompt);
     const all = [...new Set([...c.exact.values()].flat().map((v) => v.label))];
     tr.answer(t.round.turnId, all[0]);
-    assert.equal(t.round.turnMs, 9000, 'one second shorter after a correct answer');
+    assert.equal(t.round.turnMs, 10000, 'every turn gets the full time');
     for (let i = 1; i < config.maxAnswers; i++) tr.answer(t.round.turnId, all[i]);
     assert.ok(events2.includes('topicDone'), 'topic ends after maxAnswers');
     assert.equal(t.round.turnStartedAt, 0);

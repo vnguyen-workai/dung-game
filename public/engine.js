@@ -4,8 +4,8 @@
   else root.DungEngine = factory(root.DUNG_CATEGORIES);
 })(this, function (CATEGORIES) {
   const TIER_POINTS = { 1: 10, 2: 30, 3: 60, 4: 100 };
-  // Each correct answer makes the next turn shorter; a topic ends after maxAnswers correct answers.
-  const config = { shrinkMs: 1000, turnFloorMs: 3000, maxAnswers: 12, popPauseMs: 2200 };
+  // Every turn gets the full time from the room settings; a topic ends after maxAnswers correct answers.
+  const config = { turnFloorMs: 3000, maxAnswers: 12, popPauseMs: 2200 };
   const LIMITS = {
     lives: [1, 5],
     minTurn: [4, 20],
@@ -277,7 +277,7 @@
     startTurn() {
       const r = this.round;
       r.turnStartedAt = Date.now();
-      r.turnMs = Math.max(config.turnFloorMs, this.settings.minTurn * 1000 - r.used.size * config.shrinkMs);
+      r.turnMs = Math.max(config.turnFloorMs, this.settings.minTurn * 1000);
       clearTimeout(this.timer);
       this.timer = setTimeout(() => this.explode(), r.turnMs);
       this.broadcast();
