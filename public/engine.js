@@ -5,7 +5,7 @@
 })(this, function (CATEGORIES) {
   const TIER_POINTS = { 1: 10, 2: 30, 3: 60, 4: 100 };
   // Every turn gets the full time from the room settings; a topic ends after maxAnswers correct answers.
-  const config = { turnFloorMs: 3000, maxAnswers: 12, popPauseMs: 2200 };
+  const config = { turnFloorMs: 3000, maxAnswers: 8, popPauseMs: 2200 };
   const LIMITS = {
     lives: [1, 5],
     minTurn: [4, 20],
