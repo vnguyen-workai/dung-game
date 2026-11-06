@@ -1,7 +1,7 @@
 const assert = require('assert');
 const { Room, LIMITS, config, CATS, findAnswer } = require('../public/engine');
 
-Object.assign(config, { turnFloorMs: 30, popPauseMs: 20 });
+Object.assign(config, { turnFloorMs: 30, popPauseMs: 20, topicIntroMs: 0 });
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
 // accent and prefix handling

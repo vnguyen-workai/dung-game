@@ -5,7 +5,7 @@
 })(this, function (CATEGORIES) {
   const TIER_POINTS = { 1: 10, 2: 30, 3: 60, 4: 100 };
   // Every turn gets the full time from the room settings; a topic ends after maxAnswers correct answers.
-  const config = { turnFloorMs: 3000, maxAnswers: 6, popPauseMs: 2200 };
+  const config = { turnFloorMs: 3000, maxAnswers: 6, popPauseMs: 1600, topicIntroMs: 2200 };
   const LIMITS = {
     lives: [1, 5],
     minTurn: [4, 20],
@@ -296,7 +296,13 @@
         turnMs: 0,
         turnStartedAt: 0,
       };
-      this.startTurn();
+      // Players see the new topic before the first turn's clock starts.
+      if (!config.topicIntroMs) return this.startTurn();
+      this.broadcast();
+      const r = this.round;
+      this.timer = setTimeout(() => {
+        if (this.status === 'playing' && this.round === r) this.startTurn();
+      }, config.topicIntroMs);
     }
 
     startTurn() {

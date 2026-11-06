@@ -464,8 +464,25 @@ function updateFuse() {
   $('timerFill').style.strokeDashoffset = 119.4 * f;
 }
 
+let introRound = null;
+function showTopicIntro(r) {
+  if (!r || r.number === introRound) return;
+  introRound = r.number;
+  $('topicIntroLabel').textContent = r.number === 1 ? 'Cất cánh! · Chủ đề đầu tiên' : `Chủ đề mới · Vòng ${r.number}`;
+  const m = r.prompt.match(/^(Kể tên (?:một )?)(.*)$/);
+  const lead = m ? m[1].trim() : '';
+  const rest = m ? m[2] : r.prompt;
+  $('topicIntroLead').textContent = lead;
+  $('topicIntroText').textContent = rest.charAt(0).toUpperCase() + rest.slice(1);
+  const el = $('topicIntro');
+  el.classList.remove('show');
+  void el.offsetWidth;
+  el.classList.add('show');
+}
+
 function renderGame() {
   const r = state.round;
+  showTopicIntro(r);
   $('gameCode').textContent = state.code;
   $('roundNum').textContent = r ? r.number : 1;
   $('promptText').textContent = r ? r.prompt : '';
@@ -580,7 +597,7 @@ function onState(s) {
   if (s.status === 'lobby') { show('lobby'); renderLobby(); }
   else if (s.status === 'playing') {
     show('game');
-    if (prevStatus !== 'playing') { for (const el of seatEls.values()) el.remove(); seatEls.clear(); turnKey = null; }
+    if (prevStatus !== 'playing') { for (const el of seatEls.values()) el.remove(); seatEls.clear(); turnKey = null; introRound = null; }
     renderGame();
   } else if (s.status === 'ended') {
     setTimeout(() => { if (state.status === 'ended') { show('end'); renderEnd(); } }, prevStatus === 'playing' ? 1800 : 0);
