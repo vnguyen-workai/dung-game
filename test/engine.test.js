@@ -2,7 +2,7 @@ const assert = require('assert');
 const { Room, LIMITS, config, CATS, findAnswer, answersForPlayers } = require('../public/engine');
 assert.deepEqual([2, 3, 4, 10].map(answersForPlayers), [4, 5, 7, 7]);
 
-Object.assign(config, { turnFloorMs: 30, popPauseMs: 20, topicIntroMs: 0 });
+Object.assign(config, { turnFloorMs: 30, popPauseMs: 20, topicIntroMs: 0, legendBonusMs: 0 });
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
 // accent and prefix handling

@@ -716,31 +716,104 @@ function confetti(count) {
   }
 }
 
-function celebrate(a) {
-  const seat = seatEls.get(a.playerId);
-  if (!seat || a.tier < 2) return;
-  const x = Number(seat.dataset.x);
-  const y = Number(seat.dataset.y);
-  if (a.tier === 2) { sparkleAt(x, y, 14, ['#7dffa0', '#ffffff', '#5ff2ff'], 60); return; }
-  sparkleAt(x, y, a.tier === 4 ? 36 : 24, a.tier === 4 ? ['#ffd23f', '#ffffff', '#ff9f1c'] : ['#5ff2ff', '#ffffff', '#ff5fa8'], a.tier === 4 ? 150 : 100);
+function ringAt(x, y, color, size) {
+  const r = document.createElement('div');
+  r.className = 'ring';
+  r.style.left = `${x}px`;
+  r.style.top = `${y}px`;
+  r.style.borderColor = color;
+  $('arena').appendChild(r);
+  r.animate([
+    { width: '10px', height: '10px', opacity: 1 },
+    { width: `${size}px`, height: `${size}px`, opacity: 0 },
+  ], { duration: 650, easing: 'ease-out', fill: 'forwards' }).onfinish = () => r.remove();
+}
+
+function flashScreen(cls) {
+  const f = $('flash');
+  f.classList.remove('show', 'gold', 'cyan');
+  void f.offsetWidth;
+  f.classList.add('show', cls);
+}
+
+function quakeScreen(big) {
+  const game = $('game');
+  game.classList.remove('quake', 'quake-big');
+  void game.offsetWidth;
+  game.classList.add(big ? 'quake-big' : 'quake');
+  setTimeout(() => game.classList.remove('quake', 'quake-big'), big ? 900 : 550);
+}
+
+function fireworks(bursts, colors) {
+  const arena = $('arena');
+  for (let i = 0; i < bursts; i++) {
+    setTimeout(() => {
+      const x = arena.clientWidth * (0.15 + Math.random() * 0.7);
+      const y = arena.clientHeight * (0.1 + Math.random() * 0.6);
+      ringAt(x, y, colors[i % colors.length], 140);
+      sparkleAt(x, y, 26, colors, 110);
+    }, i * 280);
+  }
+}
+
+function showRareBanner(a, label) {
+  const p = state.players.find((q) => q.id === a.playerId);
+  const b = $('rareBanner');
+  b.className = 'rare-banner';
+  $('rareLabel').textContent = label;
+  $('rareText').textContent = `${p ? (a.playerId === me ? 'Bạn' : p.name) : ''}: ${a.text} · +${a.points}`;
+  void b.offsetWidth;
+  b.classList.add('show', `tier${a.tier}`);
+}
+
+function planeLoop(seat) {
   seat.classList.remove('loop');
   void seat.offsetWidth;
   seat.classList.add('loop');
   setTimeout(() => seat.classList.remove('loop'), 1000);
-  const p = state.players.find((q) => q.id === a.playerId);
-  const b = $('rareBanner');
-  b.className = 'rare-banner';
-  $('rareLabel').textContent = a.tier === 4 ? 'CÓ MỘT KHÔNG HAI!' : 'HIẾM!';
-  $('rareText').textContent = `${p ? (a.playerId === me ? 'Bạn' : p.name) : ''}: ${a.text} · +${a.points}`;
-  void b.offsetWidth;
-  b.classList.add('show', `tier${a.tier}`);
-  if (a.tier === 4) {
-    confetti(70);
-    $('flash').classList.remove('show', 'gold');
-    void $('flash').offsetWidth;
-    $('flash').classList.add('show', 'gold');
-    if (navigator.vibrate && a.playerId === me) navigator.vibrate([40, 30, 40, 30, 120]);
+}
+
+// The rarer the answer, the bigger the show.
+function celebrate(a) {
+  const seat = seatEls.get(a.playerId);
+  if (!seat) return;
+  const x = Number(seat.dataset.x);
+  const y = Number(seat.dataset.y);
+  if (a.tier === 1) { ringAt(x, y, '#ffffff', 90); return; }
+  if (a.tier === 2) {
+    ringAt(x, y, '#7dffa0', 140);
+    sparkleAt(x, y, 22, ['#7dffa0', '#ffffff', '#5ff2ff'], 80);
+    showRareBanner(a, 'KHÁ HIẾM!');
+    return;
   }
+  if (a.tier === 3) {
+    ringAt(x, y, '#5ff2ff', 220);
+    sparkleAt(x, y, 40, ['#5ff2ff', '#ffffff', '#ff5fa8'], 130);
+    fireworks(2, ['#5ff2ff', '#ff5fa8', '#ffffff']);
+    planeLoop(seat);
+    flashScreen('cyan');
+    quakeScreen(false);
+    showRareBanner(a, 'HIẾM!');
+    if (navigator.vibrate && a.playerId === me) navigator.vibrate([30, 30, 60]);
+    return;
+  }
+  // Tier 4: take over the whole screen.
+  const p = state.players.find((q) => q.id === a.playerId);
+  const o = $('legend');
+  $('legendWho').textContent = p ? (a.playerId === me ? 'BẠN' : p.name.toUpperCase()) : '';
+  $('legendAnswer').textContent = a.text;
+  $('legendPts').textContent = `+${a.points}`;
+  o.classList.remove('show');
+  void o.offsetWidth;
+  o.classList.add('show');
+  ringAt(x, y, '#ffd23f', 320);
+  sparkleAt(x, y, 60, ['#ffd23f', '#ffffff', '#ff9f1c'], 190);
+  fireworks(6, ['#ffd23f', '#ff5fa8', '#5ff2ff', '#7dffa0', '#ffffff']);
+  confetti(140);
+  planeLoop(seat);
+  flashScreen('gold');
+  quakeScreen(true);
+  if (navigator.vibrate && a.playerId === me) navigator.vibrate([60, 40, 60, 40, 200]);
 }
 
 function onBoom({ playerId, eliminated }) {

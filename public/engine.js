@@ -6,7 +6,7 @@
   const TIER_POINTS = { 1: 10, 2: 30, 3: 60, 4: 100 };
   // Every turn gets the full time from the room settings. A topic ends after a number of correct answers
   // that depends on how many players are still in: fewer players, shorter topics.
-  const config = { turnFloorMs: 3000, popPauseMs: 1600, topicIntroMs: 2200 };
+  const config = { turnFloorMs: 3000, popPauseMs: 1600, topicIntroMs: 2200, legendBonusMs: 3000 };
   const answersForPlayers = (alive) => (alive <= 2 ? 4 : alive === 3 ? 5 : 7);
   const LIMITS = {
     lives: [1, 5],
@@ -312,10 +312,11 @@
       }, config.topicIntroMs);
     }
 
-    startTurn() {
+    // extraMs: time added after a full-screen celebration so the next player doesn't lose it.
+    startTurn(extraMs = 0) {
       const r = this.round;
       r.turnStartedAt = Date.now();
-      r.turnMs = Math.max(config.turnFloorMs, this.settings.minTurn * 1000);
+      r.turnMs = Math.max(config.turnFloorMs, this.settings.minTurn * 1000) + extraMs;
       clearTimeout(this.timer);
       this.timer = setTimeout(() => this.explode(), r.turnMs);
       this.broadcast();
@@ -373,7 +374,7 @@
       this.emit('answer', { playerId: id, text: hit.label, ok: true, tier: hit.tier, points: pts, gainedHeart });
       r.turnIdx = this.nextAliveIdx(r.turnIdx);
       if (r.used.size >= r.maxAnswers) return this.finishTopic();
-      this.startTurn();
+      this.startTurn(hit.tier === 4 ? config.legendBonusMs : 0);
     }
 
     // Enough correct answers on this topic: nobody loses a heart, move to a new topic.
