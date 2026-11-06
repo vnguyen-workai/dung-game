@@ -1,1 +1,1 @@
-window.DUNG_VERSION = '73812d7a';
+window.DUNG_VERSION = '47a6c8df';

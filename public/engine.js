@@ -20,6 +20,8 @@
     return String(s)
       .normalize('NFC')
       .toLowerCase()
+      .replace(/\+/g, ' plus ')
+      .replace(/#/g, ' sharp ')
       .replace(/[^\p{L}\p{N} ]/gu, ' ')
       .replace(/\s+/g, ' ')
       .trim();
@@ -48,6 +50,7 @@
     'họa sĩ', 'bức tranh', 'tranh', 'nhà soạn nhạc', 'youtuber', 'streamer', 'tỷ phú', 'khủng long', 'thể loại', 'nhạc',
     'chương trình', 'gameshow', 'game show', 'show', 'sự tích', 'truyện cổ tích', 'cổ tích', 'truyền thuyết', 'công ty',
     'tập đoàn', 'ngân hàng', 'nhân vật',
+    'bang', 'tiểu bang', 'quốc gia', 'đất nước', 'ngôn ngữ', 'ngôn ngữ lập trình',
   ].map((p) => exactForm(p)).sort((a, b) => b.length - a.length);
   const PREFIXES_LOOSE = [...new Set(PREFIXES.map((p) => normalize(p)))].sort((a, b) => b.length - a.length);
 
