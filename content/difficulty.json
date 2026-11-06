@@ -78,7 +78,21 @@
     "mobile-games",
     "id-documents",
     "classroom-things",
-    "wallet-pocket-items"
+    "wallet-pocket-items",
+    "round-things",
+    "wheeled-things",
+    "cold-things",
+    "flying-things",
+    "sky-things",
+    "sweet-foods",
+    "vn-street-snacks",
+    "vn-herbs",
+    "cooking-methods",
+    "sports-equipment",
+    "bedroom-items",
+    "hospital-things",
+    "rainy-day-items",
+    "emotions"
   ],
   "hard": [
     "africa-capitals",
@@ -159,6 +173,20 @@
     "moons-dwarf-planets",
     "sharks-whales",
     "venomous-animals",
-    "one-word-countries"
+    "one-word-countries",
+    "olympic-legends",
+    "tech-founders",
+    "finance-terms",
+    "medical-specialties",
+    "vn-battles",
+    "number-idioms",
+    "vn-poems",
+    "world-literary-characters",
+    "opera-ballet",
+    "deserts",
+    "red-white-flags",
+    "math-theorems",
+    "national-dishes",
+    "astronomy-terms"
   ]
 }
