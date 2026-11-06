@@ -92,7 +92,21 @@
     "bedroom-items",
     "hospital-things",
     "rainy-day-items",
-    "emotions"
+    "emotions",
+    "things-with-holes",
+    "sharp-things",
+    "soft-things",
+    "hot-things",
+    "white-things",
+    "black-things",
+    "fridge-items",
+    "garden-things",
+    "baby-items",
+    "birthday-party-things",
+    "water-animals",
+    "street-things",
+    "makeup-items",
+    "uniform-jobs"
   ],
   "hard": [
     "africa-capitals",
@@ -187,6 +201,20 @@
     "red-white-flags",
     "math-theorems",
     "national-dishes",
-    "astronomy-terms"
+    "astronomy-terms",
+    "jp-kr-words",
+    "latin-phrases",
+    "chess-terms",
+    "architecture-styles",
+    "human-bones-muscles",
+    "botany-terms",
+    "rocks-minerals",
+    "weather-terms",
+    "lab-equipment",
+    "century20-events",
+    "vn-dynasties",
+    "vn-heroines",
+    "computer-scientists",
+    "national-parks"
   ]
 }
