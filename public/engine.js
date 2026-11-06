@@ -96,7 +96,7 @@
   // Lookup tables are built the first time a topic is used, so loading 100+ topics stays fast.
   function buildIndex(c) {
     const exact = new Map(), loose = new Map(), exactBare = new Map(), looseBare = new Map();
-    const compact = new Map(), shortName = new Map();
+    const compact = new Map(), shortName = new Map(), forms = new Map();
     for (const [tier, list] of Object.entries(c.answers)) {
       for (const entry of list) {
         const aliases = entry.split('|');
@@ -105,11 +105,15 @@
           const e = exactForm(a);
           addTo(exact, e, ans);
           addTo(loose, normalize(e), ans);
+          addTo(forms, normalize(e), e);
           // Very short leftovers ("chùa cầu" → "cầu") would turn a generic word into an answer.
           const bare = stripPrefix(e);
           if (bare.length >= 4 || bare === e) addTo(exactBare, bare, ans);
           const lb = stripPrefix(normalize(e), PREFIXES_LOOSE);
-          if (lb.length >= 4 || lb === normalize(e)) addTo(looseBare, lb, ans);
+          if (lb.length >= 4 || lb === normalize(e)) {
+            addTo(looseBare, lb, ans);
+            if (normalize(bare) === lb) addTo(forms, lb, bare);
+          }
           const n = normalize(e);
           addTo(compact, n.replace(/ /g, ''), ans);
           const words = n.split(' ');
@@ -117,13 +121,13 @@
         }
       }
     }
-    return { exact, loose, exactBare, looseBare, compact, shortName };
+    return { exact, loose, exactBare, looseBare, compact, shortName, forms };
   }
 
   const CATS = CATEGORIES.map((c) => {
     let index = null;
     const cat = { id: c.id, prompt: c.prompt, level: c.level || 2 };
-    for (const k of ['exact', 'loose', 'exactBare', 'looseBare', 'compact', 'shortName']) {
+    for (const k of ['exact', 'loose', 'exactBare', 'looseBare', 'compact', 'shortName', 'forms']) {
       Object.defineProperty(cat, k, { get: () => (index || (index = buildIndex(c)))[k] });
     }
     return cat;
@@ -153,9 +157,18 @@
     const bare = stripPrefix(e);
     const looseBare = stripPrefix(normalize(e), PREFIXES_LOOSE);
     const pick = (list) => list && (list.find((a) => !used.has(a.key)) || list[0]);
-    const hit = pick(cat.exact.get(e)) || pick(cat.loose.get(normalize(e)))
+    // A short word typed WITH accents that differ from every stored spelling is a different word
+    // ("dê" is not "dế", "cơm" is not "cốm"); typing it without accents still matches.
+    const clash = (typed, key) => {
+      if (!typed || typed.includes(' ') || key.length > 4 || normalize(typed) !== key || typed === key) return false;
+      const stored = cat.forms.get(key) || [];
+      return stored.length > 0 && stored.every((f) => f !== typed);
+    };
+    const loosePick = (map, key, typed) => (clash(typed, key) ? null : pick(map.get(key)));
+    const bareTyped = normalize(bare) === looseBare ? bare : null;
+    const hit = pick(cat.exact.get(e)) || loosePick(cat.loose, normalize(e), e)
       || pick(cat.exactBare.get(bare)) || pick(cat.exact.get(bare))
-      || pick(cat.looseBare.get(looseBare)) || pick(cat.loose.get(looseBare));
+      || loosePick(cat.looseBare, looseBare, bareTyped) || loosePick(cat.loose, looseBare, bareTyped);
     if (hit) return hit;
     const only = (list) => {
       const uniq = [...new Set(list || [])];
@@ -163,7 +176,7 @@
     };
     // Typed without spaces ("sontung"), or just the last two words of a long name ("việt anh").
     const n = looseBare;
-    const viaCompact = pick(cat.compact.get(n.replace(/ /g, '')));
+    const viaCompact = clash(bareTyped, n) ? null : pick(cat.compact.get(n.replace(/ /g, '')));
     if (viaCompact) return viaCompact;
     const viaShort = only(cat.shortName.get(n));
     if (viaShort) return viaShort;

@@ -15,6 +15,10 @@ assert.equal(lab('asia-capitals', 'thủ đô bắc kinh'), 'bắc kinh');
 assert.equal(lab('europe-cities', 'paris'), null, 'capitals are not "other" European cities');
 assert.equal(lab('europe-cities', 'barcelonaa'), 'barcelona', 'one typo allowed');
 assert.equal(lab('us-cities', 'xyz không có'), null);
+assert.equal(lab('nocturnal-animals', 'dê'), null, 'accented "dê" is not "dế"');
+assert.equal(lab('nocturnal-animals', 'de'), 'dế', 'unaccented still matches');
+assert.equal(lab('green-foods', 'cơm'), null);
+assert.equal(lab('green-foods', 'cốm'), 'cốm');
 
 (async () => {
   const events = [];
