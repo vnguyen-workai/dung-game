@@ -1,6 +1,7 @@
 // Tiers: 1 = phổ biến (10đ), 2 = khá hiếm (30đ), 3 = hiếm (60đ), 4 = có một không hai (100đ).
 // "a|b" = aliases for the same answer.
-module.exports = [
+(function (root) {
+const CATEGORIES = [
   {
     prompt: 'Kể tên một món ăn đường phố Việt Nam',
     answers: {
@@ -278,3 +279,6 @@ module.exports = [
     },
   },
 ];
+if (typeof module === 'object' && module.exports) module.exports = CATEGORIES;
+else root.DUNG_CATEGORIES = CATEGORIES;
+})(this);

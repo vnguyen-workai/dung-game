@@ -3,111 +3,140 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Đùng!</title>
+  <title>Đùng</title>
+  <meta name="description" content="Trò chơi từ ngữ tiệc tùng — chơi cùng bạn bè." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;600;800;900&display=swap" rel="stylesheet" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
+  <div class="sky" aria-hidden="true">
+    <div id="clouds"></div>
+    <img class="mountains" id="mountainsImg" alt="" />
+    <img class="airport" id="airportImg" alt="" />
+    <div class="runway"><div class="runway-lines"></div></div>
+  </div>
+
   <!-- HOME -->
   <section id="home" class="screen active">
-    <div class="home-wrap">
-      <div class="logo">
-        <svg class="logo-cracker" viewBox="0 0 64 120" aria-hidden="true"><use href="#crackerArt" /></svg>
-        <h1>Đùng!</h1>
-        <p class="tag">Nói nhanh, nói hiếm — đừng để pháo nổ trên tay!</p>
-      </div>
+    <header class="title-block">
+      <h1 class="title">ĐÙNG</h1>
+      <p class="subtitle"><span></span>Chơi cùng bạn bè<span></span></p>
+    </header>
 
-      <div class="card">
-        <label class="field">
-          <span>Tên của bạn</span>
-          <input id="nameInput" maxlength="16" placeholder="VD: Tuấn" autocomplete="nickname" />
-        </label>
-      </div>
-
-      <div class="card">
-        <h2>Tạo phòng</h2>
-        <button id="createBtn" class="btn btn-gold">Tạo phòng mới</button>
-      </div>
-
-      <div class="card">
-        <h2>Vào bằng mã</h2>
-        <div class="row">
-          <input id="codeInput" class="code-input" maxlength="4" placeholder="ABCD" autocapitalize="characters" />
-          <button id="joinBtn" class="btn btn-red">Vào</button>
+    <div class="home-layout">
+      <div class="col">
+        <div class="panel">
+          <div class="panel-head">
+            <h2>Ai đang chơi</h2>
+            <button id="howBtn" class="link-btn" type="button">Cách chơi</button>
+          </div>
+          <label class="field-label" for="nameInput">Tên của bạn</label>
+          <input id="nameInput" class="px-input" maxlength="16" placeholder="Nhập tên…" autocomplete="nickname" />
+          <div id="planePicker" class="plane-picker" role="radiogroup" aria-label="Chọn máy bay"></div>
         </div>
-        <p id="homeError" class="error"></p>
+
+        <div class="panel">
+          <div class="panel-head"><h2>Tạo phòng</h2></div>
+          <button id="createBtn" class="px-btn cyan wide" type="button"><span class="plus">+</span> Tạo một phòng</button>
+          <p class="hint">Gửi mã phòng cho bạn bè để cùng chơi · tối đa 20 người</p>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head"><h2>Tham gia bằng mã</h2></div>
+          <div class="row">
+            <input id="codeInput" class="px-input code" maxlength="4" placeholder="KRLP" autocapitalize="characters" autocomplete="off" />
+            <button id="joinBtn" class="px-btn pink" type="button">Vào</button>
+          </div>
+          <p id="homeError" class="error" role="alert"></p>
+        </div>
+        <p id="localNote" class="hint note" hidden>Chế độ thử: chưa kết nối Supabase — phòng chỉ hoạt động giữa các tab trên cùng trình duyệt.</p>
       </div>
 
-      <details class="card how">
-        <summary>Cách chơi</summary>
-        <ol>
-          <li>Mỗi vòng có một chủ đề, VD “Kể tên một tỉnh thành”.</li>
-          <li>Đến lượt bạn thì gõ một câu trả lời chưa ai nói. Đúng thì pháo chuyền sang người kế.</li>
-          <li>Ngòi pháo cháy ngầm — không biết lúc nào nổ. Nổ trên tay ai thì người đó mất một ❤.</li>
-          <li>Câu trả lời càng hiếm càng nhiều điểm. Đủ điểm sẽ được thêm ❤.</li>
-          <li>Hết ❤ là bị loại. Người cuối cùng còn trụ lại thắng!</li>
-        </ol>
-        <p class="muted">Gõ có dấu hay không dấu đều được.</p>
-      </details>
+      <div class="mascot-spot" aria-hidden="true">
+        <div class="zzz"><span>z</span><span>z</span><span>Z</span></div>
+        <img id="homeMascot" class="mascot-img" alt="" />
+        <div class="shadow"></div>
+      </div>
     </div>
   </section>
 
   <!-- LOBBY -->
   <section id="lobby" class="screen">
-    <div class="lobby-wrap">
-      <div class="card code-card">
-        <span class="muted">Mã phòng</span>
+    <header class="title-block small">
+      <h1 class="title">ĐÙNG</h1>
+    </header>
+    <div class="col narrow">
+      <div class="panel center">
+        <div class="panel-head"><h2>Mã phòng</h2></div>
         <div id="lobbyCode" class="big-code">----</div>
-        <button id="copyLinkBtn" class="btn btn-ghost small">Sao chép link mời</button>
+        <button id="copyLinkBtn" class="px-btn ghost small" type="button">Sao chép link mời</button>
       </div>
 
-      <div class="card">
-        <h2>Người chơi <span id="seatCount" class="muted"></span></h2>
+      <div class="panel">
+        <div class="panel-head"><h2>Hành khách</h2><span id="seatCount" class="count"></span></div>
         <ul id="playerList" class="player-list"></ul>
       </div>
 
-      <div class="card">
-        <h2>Cài đặt phòng</h2>
+      <div class="panel">
+        <div class="panel-head"><h2>Cài đặt phòng</h2></div>
         <div id="settingsBox" class="settings"></div>
-        <p id="settingsNote" class="muted small-text"></p>
+        <p id="settingsNote" class="hint"></p>
       </div>
 
-      <button id="startBtn" class="btn btn-gold big">Bắt đầu</button>
-      <p id="lobbyWait" class="muted center"></p>
-      <button id="leaveBtn" class="btn btn-ghost">Rời phòng</button>
+      <button id="startBtn" class="px-btn pink wide big" type="button">Cất cánh!</button>
+      <p id="lobbyWait" class="hint center on-sky"></p>
+      <button id="leaveBtn" class="px-btn ghost wide" type="button">Rời phòng</button>
     </div>
   </section>
 
   <!-- GAME -->
   <section id="game" class="screen">
-    <header class="game-top">
-      <div class="pill">Phòng <b id="gameCode"></b></div>
-      <div class="pill">Vòng <b id="roundNum">1</b></div>
+    <header class="hud">
+      <div class="hud-box">
+        <span class="hud-label">Phòng</span>
+        <span id="gameCode" class="hud-val cyan"></span>
+      </div>
+      <div class="hud-mid">
+        <div id="heartRow" class="heart-row"></div>
+        <span class="hud-small">Vòng <b id="roundNum">1</b></span>
+      </div>
+      <div class="hud-box right">
+        <span class="hud-label">Điểm</span>
+        <span id="myPoints" class="hud-val pink">0</span>
+      </div>
     </header>
 
-    <div class="prompt-card">
-      <div class="prompt-label">Chủ đề</div>
+    <div class="prompt-panel">
+      <div class="prompt-label">Chủ đề · <span id="usedCount"></span></div>
       <div id="promptText" class="prompt-text"></div>
-      <div id="usedCount" class="prompt-sub"></div>
+      <div class="prompt-sub">▼ câu càng hiếm, điểm càng cao ▼</div>
     </div>
 
     <div id="arena" class="arena">
-      <div id="cracker" class="cracker">
-        <svg viewBox="0 0 64 120" aria-hidden="true"><use href="#crackerArt" /></svg>
-        <div id="spark" class="spark"></div>
+      <div id="mascot" class="mascot">
+        <img id="mascotImg" alt="" />
       </div>
       <div id="boomText" class="boom-text">ĐÙNG!</div>
     </div>
 
     <footer class="game-bottom">
       <div class="meter" title="Điểm để đổi thêm ❤">
-        <div class="meter-label"><span id="myPoints">0</span> điểm · ❤ kế: <span id="myBank">0</span>/<span id="ppHeart">0</span></div>
+        <span class="meter-label">❤ kế tiếp</span>
         <div class="meter-bar"><div id="meterFill"></div></div>
+        <span class="meter-label"><span id="myBank">0</span>/<span id="ppHeart">0</span></span>
       </div>
       <form id="answerForm" class="answer-row" autocomplete="off">
-        <input id="answerInput" maxlength="40" placeholder="Đợi lượt…" disabled enterkeyhint="send" />
-        <button id="sendBtn" class="btn btn-red" disabled>Gửi</button>
+        <div class="timer" id="timer">
+          <svg viewBox="0 0 44 44" aria-hidden="true">
+            <circle cx="22" cy="22" r="19" class="timer-track" />
+            <circle cx="22" cy="22" r="19" class="timer-fill" id="timerFill" />
+          </svg>
+          <span id="timerText">–</span>
+        </div>
+        <input id="answerInput" class="px-input answer" maxlength="40" placeholder="Đợi lượt…" disabled enterkeyhint="send" />
+        <button id="sendBtn" class="px-btn pink" disabled>Bay</button>
       </form>
       <p id="turnHint" class="turn-hint"></p>
     </footer>
@@ -115,47 +144,49 @@
 
   <!-- END -->
   <section id="end" class="screen">
-    <div class="lobby-wrap">
-      <div class="card center">
-        <div class="trophy">🏮</div>
-        <h2 id="winnerText"></h2>
+    <header class="title-block small">
+      <h1 class="title">ĐÙNG</h1>
+    </header>
+    <div class="col narrow">
+      <div class="panel center">
+        <img id="winnerPlane" class="winner-plane" alt="" />
+        <h2 id="winnerText" class="winner-text"></h2>
       </div>
-      <div class="card">
-        <h2>Bảng điểm</h2>
+      <div class="panel">
+        <div class="panel-head"><h2>Bảng điểm</h2></div>
         <ol id="scoreList" class="score-list"></ol>
       </div>
-      <button id="againBtn" class="btn btn-gold big">Chơi lại</button>
-      <p id="againWait" class="muted center"></p>
-      <button id="endLeaveBtn" class="btn btn-ghost">Rời phòng</button>
+      <button id="againBtn" class="px-btn pink wide big" type="button">Bay thêm ván nữa</button>
+      <p id="againWait" class="hint center on-sky"></p>
+      <button id="endLeaveBtn" class="px-btn ghost wide" type="button">Rời phòng</button>
     </div>
   </section>
 
-  <div id="toast" class="toast"></div>
+  <!-- HOW TO PLAY -->
+  <div id="howModal" class="modal" hidden>
+    <div class="panel modal-card" role="dialog" aria-modal="true" aria-labelledby="howTitle">
+      <div class="panel-head"><h2 id="howTitle">Cách chơi</h2><button id="howClose" class="link-btn" type="button">Đóng ✕</button></div>
+      <ol class="how-list">
+        <li>Mỗi vòng có một chủ đề, VD “Kể tên một tỉnh thành”.</li>
+        <li>Máy bay Đùng bay tới ai thì người đó phải gõ một câu trả lời <b>chưa ai nói</b>.</li>
+        <li>Trả lời đúng là máy bay chuyển sang người kế. Nó nổ lúc nào thì không ai biết!</li>
+        <li>Nổ trên tay ai, người đó mất một ❤. Hết ❤ là bị loại.</li>
+        <li>Câu hiếm được nhiều điểm hơn. Đủ điểm sẽ được thêm ❤.</li>
+        <li>Người cuối cùng còn bay là người thắng!</li>
+      </ol>
+      <p class="hint">Gõ có dấu hay không dấu đều được.</p>
+    </div>
+  </div>
+
+  <div id="toast" class="toast" role="status"></div>
   <div id="flash" class="flash"></div>
 
-  <svg width="0" height="0" style="position:absolute">
-    <defs>
-      <linearGradient id="crRed" x1="0" x2="1">
-        <stop offset="0" stop-color="#9e0f16" />
-        <stop offset=".45" stop-color="#e3262f" />
-        <stop offset="1" stop-color="#8a0c12" />
-      </linearGradient>
-      <linearGradient id="crGold" x1="0" x2="1">
-        <stop offset="0" stop-color="#b8861b" />
-        <stop offset=".5" stop-color="#ffd970" />
-        <stop offset="1" stop-color="#a87812" />
-      </linearGradient>
-      <symbol id="crackerArt" viewBox="0 0 64 120">
-        <path d="M32 30 C 34 20, 26 14, 36 4" fill="none" stroke="#5a3a1a" stroke-width="3" stroke-linecap="round" />
-        <rect x="12" y="30" width="40" height="84" rx="8" fill="url(#crRed)" />
-        <rect x="12" y="36" width="40" height="7" fill="url(#crGold)" />
-        <rect x="12" y="101" width="40" height="7" fill="url(#crGold)" />
-        <text x="32" y="80" text-anchor="middle" font-size="22" font-weight="900" fill="#ffd970" font-family="Be Vietnam Pro, sans-serif">福</text>
-      </symbol>
-    </defs>
-  </svg>
-
-  <script src="/socket.io/socket.io.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+  <script src="config.js"></script>
+  <script src="categories.js"></script>
+  <script src="engine.js"></script>
+  <script src="net.js"></script>
+  <script src="sprites.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
