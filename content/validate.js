@@ -3,7 +3,7 @@
 const path = require('path');
 
 function exactForm(s) {
-  return String(s).normalize('NFC').toLowerCase().replace(/[^\p{L}\p{N} ]/gu, ' ').replace(/\s+/g, ' ').trim();
+  return String(s).normalize('NFC').toLowerCase().replace(/\+/g, ' plus ').replace(/#/g, ' sharp ').replace(/[^\p{L}\p{N} ]/gu, ' ').replace(/\s+/g, ' ').trim();
 }
 function loose(s) {
   return exactForm(s).replace(/đ/g, 'd').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();

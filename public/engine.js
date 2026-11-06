@@ -142,12 +142,12 @@
     if (viaCompact) return viaCompact;
     const viaShort = only(cat.shortName.get(n));
     if (viaShort) return viaShort;
-    // Small typos on longer answers, only when they point to a single answer.
+    // Small typos on longer answers (not on the first letter), only when they point to a single answer.
     const budget = typoBudget(n.length);
     if (!budget) return null;
     const found = new Set();
     for (const [k, list] of cat.loose) {
-      if (k.length >= 5 && withinDistance(n, k, Math.min(budget, typoBudget(k.length)))) list.forEach((a) => found.add(a));
+      if (k.length >= 5 && k[0] === n[0] && withinDistance(n, k, Math.min(budget, typoBudget(k.length)))) list.forEach((a) => found.add(a));
     }
     return found.size === 1 ? [...found][0] : null;
   }

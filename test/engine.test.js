@@ -5,11 +5,11 @@ Object.assign(config, { turnFloorMs: 30, popPauseMs: 20 });
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
 // accent handling
-const fruit = CATS.find((c) => c.prompt.includes('trái cây'));
+const fruit = CATS.find((c) => c.id === 'fruits');
 assert.equal(findAnswer(fruit, 'Dừa', new Set()).label, 'dừa');
 assert.equal(findAnswer(fruit, 'dứa', new Set()).label, 'dứa');
 assert.equal(findAnswer(fruit, 'sau rieng', new Set()).label, 'sầu riêng');
-const prov = CATS.find((c) => c.prompt.includes('tỉnh'));
+const prov = CATS.find((c) => c.id === 'vn-provinces');
 assert.equal(findAnswer(prov, 'sai gon', new Set()).label, 'hồ chí minh');
 assert.equal(findAnswer(prov, 'Đà   Nẵng!', new Set()).label, 'đà nẵng');
 
