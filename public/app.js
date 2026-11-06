@@ -629,9 +629,71 @@ function onAnswer(a) {
   }
 }
 
+// A pixel fireball with flying debris at a point in the arena.
+function explodeAt(x, y, big) {
+  const arena = $('arena');
+  const colors = ['#ffffff', '#fff3a0', '#ffd23f', '#ff9f1c', '#ff5a36', '#ff5fa8', '#3a3a4a'];
+  for (const [i, size] of (big ? [150, 100, 60] : [90, 55]).entries()) {
+    const f = document.createElement('div');
+    f.className = 'fireball';
+    f.style.left = `${x}px`;
+    f.style.top = `${y}px`;
+    f.style.width = f.style.height = `${size}px`;
+    f.style.background = ['#ff5a36', '#ffd23f', '#ffffff'][i];
+    arena.appendChild(f);
+    f.animate([
+      { transform: 'translate(-50%, -50%) rotate(45deg) scale(0.1)', opacity: 1 },
+      { transform: 'translate(-50%, -50%) rotate(45deg) scale(1)', opacity: 1, offset: 0.35 },
+      { transform: 'translate(-50%, -50%) rotate(45deg) scale(1.25)', opacity: 0 },
+    ], { duration: big ? 1100 : 750, delay: i * 60, easing: 'steps(8)', fill: 'forwards' }).onfinish = () => f.remove();
+  }
+  const count = big ? 42 : 22;
+  for (let i = 0; i < count; i++) {
+    const d = document.createElement('div');
+    d.className = 'debris';
+    const s = 4 + Math.floor(Math.random() * (big ? 10 : 7));
+    d.style.width = d.style.height = `${s}px`;
+    d.style.background = colors[Math.floor(Math.random() * colors.length)];
+    d.style.left = `${x}px`;
+    d.style.top = `${y}px`;
+    arena.appendChild(d);
+    const a = Math.random() * Math.PI * 2;
+    const dist = (big ? 90 : 50) + Math.random() * (big ? 170 : 90);
+    const dx = Math.cos(a) * dist;
+    const dy = Math.sin(a) * dist;
+    d.animate([
+      { transform: 'translate(-50%, -50%)', opacity: 1 },
+      { transform: `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`, opacity: 1, offset: 0.7 },
+      { transform: `translate(calc(-50% + ${dx * 1.1}px), calc(-50% + ${dy * 1.1 + 40}px))`, opacity: 0 },
+    ], { duration: (big ? 1300 : 900) + Math.random() * 400, easing: 'cubic-bezier(.15,.8,.3,1)', fill: 'forwards' }).onfinish = () => d.remove();
+  }
+  const game = $('game');
+  game.classList.remove('quake', 'quake-big');
+  void game.offsetWidth;
+  game.classList.add(big ? 'quake-big' : 'quake');
+  setTimeout(() => game.classList.remove('quake', 'quake-big'), big ? 900 : 550);
+}
+
 function onBoom({ playerId, eliminated }) {
   const cr = $('mascot');
   cr.classList.add('gone');
+  const seat = seatEls.get(playerId);
+  if (seat) {
+    explodeAt(Number(seat.dataset.x), Number(seat.dataset.y), eliminated);
+    if (eliminated) {
+      seat.classList.remove('crash');
+      void seat.offsetWidth;
+      seat.classList.add('crash');
+    }
+  }
+  if (eliminated) {
+    const p0 = state.players.find((x) => x.id === playerId);
+    const b = $('elimBanner');
+    b.textContent = `${playerId === me ? 'BẠN' : (p0?.name || '').toUpperCase()} BỊ LOẠI!`;
+    b.classList.remove('show');
+    void b.offsetWidth;
+    b.classList.add('show');
+  }
   $('boomText').classList.remove('show');
   void $('boomText').offsetWidth;
   $('boomText').classList.add('show');
