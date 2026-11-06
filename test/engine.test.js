@@ -15,10 +15,28 @@ assert.equal(lab(D, 'sa mac gobi'), 'gobi', 'accents and prefix optional');
 assert.equal(lab(D, 'amazon'), null, 'a rainforest is not a desert');
 assert.equal(lab(D, 'kalaharii'), 'kalahari', 'one typo allowed');
 assert.equal(lab(D, 'xyz không có'), null);
-assert.equal(lab('nocturnal-animals', 'dê'), null, 'accented "dê" is not "dế"');
-assert.equal(lab('nocturnal-animals', 'de'), 'dế', 'unaccented still matches');
-assert.equal(lab('green-foods', 'cơm'), null);
-assert.equal(lab('green-foods', 'cốm'), 'cốm');
+// A short word typed with different accents is a different word ("dê" ≠ "dế"); unaccented still matches.
+// Picks any enabled topic with such a word, so hiding old topics never breaks this test.
+{
+  const { normalize } = require('../public/engine');
+  let checked = 0;
+  for (const c of CATS) {
+    for (const [k, forms] of c.forms) {
+      if (checked >= 5 || k.includes(' ') || k.length > 4 || !/^[a-z]+$/.test(k)) continue;
+      if (!forms.every((f) => f !== normalize(f))) continue;
+      const other = ['à', 'á', 'ả', 'ã', 'ạ'].map((m) => k.replace(/a/, m)).find((v) => v !== k && !forms.includes(v));
+      if (!other || c.exact.has(other) || !k.includes('a')) continue;
+      assert.equal(findAnswer(c, other, new Set()), null, `${c.id}: "${other}" must not match ${forms}`);
+      assert.ok(findAnswer(c, k, new Set()), `${c.id}: unaccented "${k}" still matches`);
+      checked++;
+    }
+  }
+  assert.ok(checked >= 3, 'found accent-clash cases to check');
+}
+// Per-topic deny lists: known wrong answers stay wrong even with a typo or missing accents.
+for (const c of CATS) {
+  for (const w of c.deny) assert.equal(findAnswer(c, w, new Set()), null, `${c.id}: "${w}" is denied`);
+}
 
 (async () => {
   const events = [];

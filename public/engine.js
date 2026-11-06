@@ -122,13 +122,19 @@
         }
       }
     }
-    return { exact, loose, exactBare, looseBare, compact, shortName, forms };
+    // Known wrong answers that look like right ones ("nhà minh" vs "nhà đinh"): rejected unless typed exactly right.
+    const deny = new Set();
+    for (const w of c.not || []) {
+      deny.add(exactForm(w));
+      if (!loose.has(normalize(w))) deny.add(normalize(w));
+    }
+    return { exact, loose, exactBare, looseBare, compact, shortName, forms, deny };
   }
 
   const CATS = CATEGORIES.map((c) => {
     let index = null;
     const cat = { id: c.id, prompt: c.prompt, level: c.level || 2 };
-    for (const k of ['exact', 'loose', 'exactBare', 'looseBare', 'compact', 'shortName', 'forms']) {
+    for (const k of ['exact', 'loose', 'exactBare', 'looseBare', 'compact', 'shortName', 'forms', 'deny']) {
       Object.defineProperty(cat, k, { get: () => (index || (index = buildIndex(c)))[k] });
     }
     return cat;
@@ -167,7 +173,10 @@
     };
     const loosePick = (map, key, typed) => (clash(typed, key) ? null : pick(map.get(key)));
     const bareTyped = normalize(bare) === looseBare ? bare : null;
-    const hit = pick(cat.exact.get(e)) || loosePick(cat.loose, normalize(e), e)
+    const exactHit = pick(cat.exact.get(e));
+    if (exactHit) return exactHit;
+    if (cat.deny.has(e) || cat.deny.has(normalize(e))) return null;
+    const hit = loosePick(cat.loose, normalize(e), e)
       || pick(cat.exactBare.get(bare)) || pick(cat.exact.get(bare))
       || loosePick(cat.looseBare, looseBare, bareTyped) || loosePick(cat.loose, looseBare, bareTyped);
     if (hit) return hit;
