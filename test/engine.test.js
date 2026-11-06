@@ -8,14 +8,13 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
 // accent, prefix and typo handling
 const lab = (id, text) => { const r = findAnswer(CATS.find((c) => c.id === id), text, new Set()); return r && r.label; };
-const CAPS = 'americas-oceania-capitals';
-assert.equal(lab(CAPS, 'Canberra'), 'canberra');
-assert.equal(lab(CAPS, 'oa sinh ton'), 'washington dc');
-assert.equal(lab(CAPS, 'WASHINGTON D.C.!'), 'washington dc');
-assert.equal(lab(CAPS, 'thủ đô canberra'), 'canberra');
-assert.equal(lab(CAPS, 'sydney'), null, 'big city, not the capital');
-assert.equal(lab(CAPS, 'buenos airess'), 'buenos aires', 'one typo allowed');
-assert.equal(lab(CAPS, 'xyz không có'), null);
+const D = 'deserts';
+assert.equal(lab(D, 'Sahara'), 'sahara');
+assert.equal(lab(D, 'GOBI!'), 'gobi');
+assert.equal(lab(D, 'sa mac gobi'), 'gobi', 'accents and prefix optional');
+assert.equal(lab(D, 'amazon'), null, 'a rainforest is not a desert');
+assert.equal(lab(D, 'kalaharii'), 'kalahari', 'one typo allowed');
+assert.equal(lab(D, 'xyz không có'), null);
 assert.equal(lab('nocturnal-animals', 'dê'), null, 'accented "dê" is not "dế"');
 assert.equal(lab('nocturnal-animals', 'de'), 'dế', 'unaccented still matches');
 assert.equal(lab('green-foods', 'cơm'), null);
