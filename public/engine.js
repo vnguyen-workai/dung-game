@@ -4,8 +4,10 @@
   else root.DungEngine = factory(root.DUNG_CATEGORIES);
 })(this, function (CATEGORIES) {
   const TIER_POINTS = { 1: 10, 2: 30, 3: 60, 4: 100 };
-  // Every turn gets the full time from the room settings; a topic ends after maxAnswers correct answers.
-  const config = { turnFloorMs: 3000, maxAnswers: 6, popPauseMs: 1600, topicIntroMs: 2200 };
+  // Every turn gets the full time from the room settings. A topic ends after a number of correct answers
+  // that depends on how many players are still in: fewer players, shorter topics.
+  const config = { turnFloorMs: 3000, popPauseMs: 1600, topicIntroMs: 2200 };
+  const answersForPlayers = (alive) => (alive <= 2 ? 4 : alive === 3 ? 5 : 7);
   const LIMITS = {
     lives: [1, 5],
     minTurn: [4, 20],
@@ -54,11 +56,13 @@
     'phố', 'đường', 'con đường', 'đường phố', 'hoa hậu', 'á hậu', 'đội', 'đội bóng', 'tướng game', 'champion',
     'chó', 'mèo', 'giống chó', 'giống mèo', 'chó giống', 'mèo giống', 'cái', 'chiếc', 'bộ', 'máy', 'đồ chơi', 'đồ', 'điệu',
     'điệu nhảy', 'điệu múa', 'múa', 'nhảy', 'khí', 'chất', 'hợp chất', 'hiện tượng', 'gia vị', 'nước chấm', 'dụng cụ',
+    'tượng', 'bức tượng', 'vở kịch', 'vở', 'kịch', 'bản nhạc', 'tác phẩm', 'chủ nghĩa', 'trường phái', 'phong trào',
+    'tên cũ', 'thánh', 'nhà văn',
   ].map((p) => exactForm(p)).sort((a, b) => b.length - a.length);
   const PREFIXES_LOOSE = [...new Set(PREFIXES.map((p) => normalize(p)))].sort((a, b) => b.length - a.length);
   // Without accents these prefixes are also common name words (quận/Quan, trường/Trương, tướng/Tường, hãng/Hằng…),
   // so they are only stripped when at least two words remain ("quan ba dinh" → "ba dinh", but not "quan vu").
-  const NAME_LIKE = new Set(['quan', 'truong', 'tuong', 'hang', 'nhac', 'ho', 'than', 'thanh', 'co', 'cung', 'hoa', 'ban', 'nhom', 'cho', 'thac', 'bai', 'tranh', 'den', 'dong', 'mon', 'mau', 'vua', 'giai', 'pho', 'duong', 'tran', 'do', 'may', 'cai', 'bo', 'chiec', 'mua', 'nhay', 'chat', 'dieu']);
+  const NAME_LIKE = new Set(['quan', 'truong', 'tuong', 'hang', 'nhac', 'ho', 'than', 'thanh', 'co', 'cung', 'hoa', 'ban', 'nhom', 'cho', 'thac', 'bai', 'tranh', 'den', 'dong', 'mon', 'mau', 'vua', 'giai', 'pho', 'duong', 'tran', 'do', 'may', 'cai', 'bo', 'chiec', 'mua', 'nhay', 'chat', 'dieu', 'vo', 'kich', 'ten']);
 
   function stripPrefix(s, list = PREFIXES) {
     for (let pass = 0; pass < 2; pass++) {
@@ -209,7 +213,7 @@
           turnStartedAt: r.turnStartedAt,
           turnMs: r.turnMs,
           usedCount: r.used.size,
-          maxAnswers: config.maxAnswers,
+          maxAnswers: r.maxAnswers,
         },
         winnerId: this.winnerId,
       };
@@ -295,6 +299,7 @@
         turnIdx,
         turnMs: 0,
         turnStartedAt: 0,
+        maxAnswers: answersForPlayers(this.aliveCount()),
       };
       // Players see the new topic before the first turn's clock starts.
       if (!config.topicIntroMs) return this.startTurn();
@@ -365,7 +370,7 @@
       if (player.hearts >= heartCap) player.bank = Math.min(player.bank, pointsPerHeart - 1);
       this.emit('answer', { playerId: id, text: hit.label, ok: true, tier: hit.tier, points: pts, gainedHeart });
       r.turnIdx = this.nextAliveIdx(r.turnIdx);
-      if (r.used.size >= config.maxAnswers) return this.finishTopic();
+      if (r.used.size >= r.maxAnswers) return this.finishTopic();
       this.startTurn();
     }
 
@@ -408,5 +413,5 @@
     }
   }
 
-  return { Room, PLANES, config, CATS, LIMITS, normalize, stripPrefix, findAnswer, clampSettings };
+  return { Room, PLANES, config, answersForPlayers, CATS, LIMITS, normalize, stripPrefix, findAnswer, clampSettings };
 });

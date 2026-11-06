@@ -1,5 +1,6 @@
 const assert = require('assert');
-const { Room, LIMITS, config, CATS, findAnswer } = require('../public/engine');
+const { Room, LIMITS, config, CATS, findAnswer, answersForPlayers } = require('../public/engine');
+assert.deepEqual([2, 3, 4, 10].map(answersForPlayers), [4, 5, 7, 7]);
 
 Object.assign(config, { turnFloorMs: 30, popPauseMs: 20, topicIntroMs: 0 });
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -99,7 +100,8 @@ assert.equal(findAnswer(langs, 'c', new Set()).label, 'c');
     const all = [...new Set([...c.exact.values()].flat().map((v) => v.label))];
     tr.answer(t.round.turnId, all[0]);
     assert.equal(t.round.turnMs, 10000, 'every turn gets the full time');
-    for (let i = 1; i < config.maxAnswers; i++) tr.answer(t.round.turnId, all[i]);
+    assert.equal(t.round.maxAnswers, 4, 'two players: 4 correct answers per topic');
+    for (let i = 1; i < t.round.maxAnswers; i++) tr.answer(t.round.turnId, all[i]);
     assert.ok(events2.includes('topicDone'), 'topic ends after maxAnswers');
     assert.equal(t.round.turnStartedAt, 0);
     assert.ok(t.players.every((p) => p.hearts === t.settings.lives || p.hearts > t.settings.lives), 'nobody lost a heart');
