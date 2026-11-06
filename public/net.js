@@ -11,13 +11,14 @@
         config: { broadcast: { self: false }, presence: { key: myId } },
       });
       this.channel.on('broadcast', { event: 'm' }, ({ payload }) => onMessage(payload));
-      this.channel.on('presence', { event: 'leave' }, ({ key }) => {
-        if (!this.channel.presenceState()[key]) onLeave(key);
+      this.channel.on('presence', { event: 'leave' }, ({ key, currentPresences }) => {
+        if (!currentPresences || currentPresences.length === 0) onLeave(key);
       });
     }
 
     connect() {
       return new Promise((resolve, reject) => {
+        setTimeout(() => reject(new Error('TIMED_OUT')), 10000);
         this.channel.subscribe((status) => {
           if (status === 'SUBSCRIBED') {
             this.channel.track({ at: Date.now() });
