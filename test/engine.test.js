@@ -159,5 +159,43 @@ assert.equal(lab('green-foods', 'cốm'), 'cốm');
   while (solo.status !== 'ended') await wait(50);
   assert.ok(solo.winnerId, 'there is a winner');
   sr.close();
+  // team mode: shared hearts, turns alternate between teams, last team flying wins
+  {
+    let t = null;
+    const ev = [];
+    const tr = new Room('TEAM', 'a', 'A', (k, d) => { ev.push({ k, ...d }); if (k === 'state') t = d; });
+    for (const id of ['b', 'c', 'd', 'e']) tr.join(id, id.toUpperCase());
+    tr.setSettings('a', { ...t.settings, teams: 2, lives: 2, minTurn: 10 });
+    assert.deepEqual(t.players.map((p) => p.team), [0, 1, 0, 1, 0], 'teams balanced');
+    tr.setTeam('e', 1);
+    assert.equal(t.players.find((p) => p.id === 'e').team, 1, 'player can switch team in lobby');
+    tr.setTeam('e', 5);
+    assert.equal(t.players.find((p) => p.id === 'e').team, 1, 'invalid team ignored');
+    tr.start('a');
+    assert.equal(t.teams.length, 2);
+    const order = [];
+    for (let i = 0; i < 4; i++) {
+      const c = CATS.find((x) => x.prompt === t.round.prompt);
+      const all = [...new Set([...c.exact.values()].flat().map((v) => v.label))].filter((l) => !order.includes(l));
+      const who = t.players.find((p) => p.id === t.round.turnId);
+      order.push(who.team);
+      tr.answer(who.id, all[i]);
+      if (t.round.turnStartedAt === 0) break;
+    }
+    for (let i = 1; i < order.length; i++) assert.notEqual(order[i], order[i - 1], 'turns alternate between teams');
+    await wait(100);
+    const victim = t.players.find((p) => p.id === t.round.turnId);
+    const before = t.teams[victim.team].hearts;
+    tr.explode();
+    assert.equal(t.teams[victim.team].hearts, before - 1, 'team loses a shared heart');
+    assert.ok(t.players.filter((p) => p.team === victim.team).every((p) => p.hearts === before - 1), 'members mirror team hearts');
+    const late = tr.join('f', 'F');
+    assert.ok(late.ok && t.players.find((p) => p.id === 'f').alive, 'late joiner joins a team still flying');
+    for (let i = 0; i < 20 && t.status !== 'ended'; i++) { await wait(40); tr.explode(); }
+    assert.equal(t.status, 'ended');
+    assert.ok(t.winnerTeam === 0 || t.winnerTeam === 1, 'a team wins');
+    assert.ok(t.players.filter((p) => p.alive).every((p) => p.team === t.winnerTeam));
+    tr.close();
+  }
   console.log(`ALL TESTS PASSED (${booms} booms, ${CATS.length} categories)`);
 })();

@@ -15,9 +15,10 @@
     seats: [2, 20],
     heartCap: [1, 9],
     pointsPerHeart: [100, 1000],
+    teams: [1, 4], // 1 = everyone for themselves
   };
   const PLANES = ['tanbinh', 'cotruong', 'sieuthanh', 'chop', 'quaixe'];
-  const DEFAULT_SETTINGS = { lives: 2, minTurn: 10, seats: 20, heartCap: 5, pointsPerHeart: 300 };
+  const DEFAULT_SETTINGS = { lives: 2, minTurn: 10, seats: 20, heartCap: 5, pointsPerHeart: 300, teams: 1 };
 
   function exactForm(s) {
     return String(s)
@@ -219,6 +220,9 @@
       this.winnerId = null;
       this.participants = 0;
       this.timer = null;
+      this.teams = null; // team mode: shared hearts per team, set at start
+      this.winnerTeam = null;
+      this.lastTurn = [];
       this.join(hostId, hostName, hostPlane);
     }
 
@@ -230,8 +234,10 @@
         settings: this.settings,
         status: this.status,
         players: this.players.map((p) => ({
-          id: p.id, name: p.name, plane: p.plane, hearts: p.hearts, points: p.points, bank: p.bank, alive: p.alive,
+          id: p.id, name: p.name, plane: p.plane, hearts: p.hearts, points: p.points, bank: p.bank, alive: p.alive, team: p.team,
         })),
+        teams: this.teams && this.teams.map((t) => ({ hearts: t.hearts, bank: t.bank, points: t.points, alive: t.alive })),
+        winnerTeam: this.winnerTeam,
         round: r && {
           number: r.number,
           prompt: CATS[r.cat].prompt,
@@ -254,10 +260,20 @@
       if (this.players.some((p) => p.id === id)) { this.broadcast(); return { ok: true }; }
       if (this.players.filter((p) => !p.left).length >= this.settings.seats) return { ok: false, error: 'Phòng đã đầy' };
       const playing = this.status === 'playing';
-      this.players.push({
+      const p = {
         id, name: cleanName(name), plane: PLANES.includes(plane) ? plane : PLANES[0],
-        hearts: playing ? this.settings.lives : 0, points: 0, bank: 0, alive: playing,
-      });
+        hearts: playing ? this.settings.lives : 0, points: 0, bank: 0, alive: playing, team: 0,
+      };
+      this.players.push(p);
+      if (this.settings.teams > 1) {
+        // Join the smallest team (during a game: the smallest team still flying).
+        const ok = (t) => !playing || !this.teams || this.teams[t].alive;
+        const sizes = this.teamSizes();
+        let best = -1;
+        for (let t = 0; t < this.settings.teams; t++) if (ok(t) && (best < 0 || sizes[t] < sizes[best])) best = t;
+        p.team = Math.max(0, best);
+        if (playing && this.teams) this.syncTeam(p.team);
+      }
       if (playing) this.participants += 1;
       this.broadcast();
       return { ok: true };
@@ -265,9 +281,42 @@
 
     setSettings(id, s) {
       if (id !== this.hostId || this.status === 'playing') return;
+      const before = this.settings.teams;
       this.settings = clampSettings(s);
       this.settings.seats = Math.max(this.settings.seats, Math.min(LIMITS.seats[1], this.players.length));
+      if (this.settings.teams !== before) this.balanceTeams();
       this.broadcast();
+    }
+
+    // Players present (not left) in each team.
+    teamSizes() {
+      const sizes = Array(this.settings.teams).fill(0);
+      for (const p of this.players) if (!p.left && p.team < sizes.length) sizes[p.team] += 1;
+      return sizes;
+    }
+
+    balanceTeams() {
+      this.players.forEach((p, i) => { p.team = this.settings.teams > 1 ? i % this.settings.teams : 0; });
+    }
+
+    // Lobby: a player picks their own team.
+    setTeam(id, team) {
+      const p = this.players.find((x) => x.id === id);
+      const t = Math.round(Number(team));
+      if (!p || this.status === 'playing' || this.settings.teams < 2 || !(t >= 0 && t < this.settings.teams)) return;
+      p.team = t;
+      this.broadcast();
+    }
+
+    // Team members mirror their team's hearts and heart progress.
+    syncTeam(t) {
+      const team = this.teams[t];
+      for (const p of this.players) {
+        if (p.team !== t) continue;
+        p.hearts = p.left ? 0 : team.hearts;
+        p.bank = team.bank;
+        p.alive = team.alive && !p.left;
+      }
     }
 
     start(id) {
@@ -279,11 +328,20 @@
       this.winnerId = null;
       this.round = null;
       this.recentCats = [];
+      this.winnerTeam = null;
+      this.lastTurn = [];
       for (const p of this.players) {
         p.hearts = this.settings.lives;
         p.points = 0;
         p.bank = 0;
         p.alive = true;
+      }
+      this.teams = null;
+      if (this.settings.teams > 1) {
+        if (this.players.some((p) => p.team >= this.settings.teams) || this.teamSizes().filter(Boolean).length < 2) this.balanceTeams();
+        const sizes = this.teamSizes();
+        this.teams = sizes.map((n) => ({ hearts: this.settings.lives, bank: 0, points: 0, alive: n > 0 }));
+        this.teams.forEach((_, t) => this.syncTeam(t));
       }
       this.startRound(Math.floor(Math.random() * this.players.length));
     }
@@ -294,15 +352,32 @@
 
     // Solo: play until out of hearts. With company: last plane flying wins.
     isOver() {
+      if (this.teams) return this.teams.filter((t) => t.alive).length <= 1;
       const alive = this.aliveCount();
       return alive === 0 || (alive === 1 && this.participants >= 2);
     }
 
     nextAliveIdx(fromIdx) {
+      if (this.teams) return this.nextTeamIdx(fromIdx);
       const n = this.players.length;
       for (let i = 1; i <= n; i++) {
         const idx = (fromIdx + i) % n;
         if (this.players[idx].alive) return idx;
+      }
+      return -1;
+    }
+
+    // Team mode: the plane goes to the next team still flying, and each team sends its members in turn.
+    nextTeamIdx(fromIdx) {
+      const k = this.teams.length;
+      const from = this.players[fromIdx] ? this.players[fromIdx].team : -1;
+      for (let s = 1; s <= k; s++) {
+        const t = (((from + s) % k) + k) % k;
+        if (!this.teams[t].alive) continue;
+        const members = this.players.map((p, i) => i).filter((i) => this.players[i].alive && this.players[i].team === t);
+        if (!members.length) continue;
+        const last = this.lastTurn[t] === undefined ? -1 : this.lastTurn[t];
+        return members.find((i) => i > last) ?? members[0];
       }
       return -1;
     }
@@ -344,6 +419,8 @@
     // extraMs: time added after a full-screen celebration so the next player doesn't lose it.
     startTurn(extraMs = 0) {
       const r = this.round;
+      const cur = this.players[r.turnIdx];
+      if (cur) this.lastTurn[cur.team] = r.turnIdx;
       r.turnStartedAt = Date.now();
       r.turnMs = Math.max(config.turnFloorMs, this.settings.minTurn * 1000) + extraMs;
       clearTimeout(this.timer);
@@ -357,9 +434,17 @@
       if (this.status !== 'playing' || !r) return;
       clearTimeout(this.timer);
       const p = this.players[r.turnIdx];
-      p.hearts -= 1;
-      if (p.hearts <= 0) p.alive = false;
-      this.emit('boom', { playerId: p.id, eliminated: !p.alive });
+      if (this.teams) {
+        const team = this.teams[p.team];
+        team.hearts -= 1;
+        if (team.hearts <= 0) team.alive = false;
+        this.syncTeam(p.team);
+        this.emit('boom', { playerId: p.id, eliminated: !team.alive, team: p.team });
+      } else {
+        p.hearts -= 1;
+        if (p.hearts <= 0) p.alive = false;
+        this.emit('boom', { playerId: p.id, eliminated: !p.alive });
+      }
       if (this.isOver()) return this.end();
       const next = this.nextAliveIdx(r.turnIdx);
       r.turnStartedAt = 0;
@@ -372,6 +457,12 @@
     end() {
       clearTimeout(this.timer);
       this.status = 'ended';
+      if (this.teams) {
+        const t = this.teams.findIndex((x) => x.alive);
+        this.winnerTeam = t >= 0 ? t : null;
+        this.winnerId = null;
+        return this.broadcast();
+      }
       const winner = this.participants >= 2 && this.players.find((p) => p.alive);
       this.winnerId = winner ? winner.id : null;
       this.broadcast();
@@ -391,15 +482,19 @@
       r.used.add(hit.key);
       const pts = TIER_POINTS[hit.tier];
       player.points += pts;
-      player.bank += pts;
+      // In team mode the team shares one heart bank.
+      const holder = this.teams ? this.teams[player.team] : player;
+      if (this.teams) holder.points += pts;
+      holder.bank += pts;
       let gainedHeart = false;
       const { pointsPerHeart, heartCap } = this.settings;
-      while (player.bank >= pointsPerHeart && player.hearts < heartCap) {
-        player.bank -= pointsPerHeart;
-        player.hearts += 1;
+      while (holder.bank >= pointsPerHeart && holder.hearts < heartCap) {
+        holder.bank -= pointsPerHeart;
+        holder.hearts += 1;
         gainedHeart = true;
       }
-      if (player.hearts >= heartCap) player.bank = Math.min(player.bank, pointsPerHeart - 1);
+      if (holder.hearts >= heartCap) holder.bank = Math.min(holder.bank, pointsPerHeart - 1);
+      if (this.teams) this.syncTeam(player.team);
       this.emit('answer', { playerId: id, text: hit.label, ok: true, tier: hit.tier, points: pts, gainedHeart });
       r.turnIdx = this.nextAliveIdx(r.turnIdx);
       if (r.used.size >= r.maxAnswers) return this.finishTopic();
@@ -427,6 +522,10 @@
         p.alive = false;
         p.hearts = 0;
         p.left = true;
+        if (this.teams && !this.players.some((q) => q.team === p.team && !q.left)) {
+          this.teams[p.team].alive = false;
+          this.syncTeam(p.team);
+        }
         if (this.isOver()) return this.end();
         if (wasTurn) {
           this.round.turnIdx = this.nextAliveIdx(idx);

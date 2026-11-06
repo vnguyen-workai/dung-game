@@ -4,12 +4,21 @@ const { Room, LIMITS } = window.DungEngine;
 const { Net, online } = window.DungNet;
 
 const SETTING_DEFS = [
-  { key: 'lives', label: 'Số ❤ ban đầu' },
+  { key: 'teams', label: 'Chơi đồng đội', hint: 'chia đội, cả đội dùng chung ❤', fmt: (v) => (v > 1 ? `${v} đội` : 'Tắt') },
+  { key: 'lives', label: 'Số ❤ ban đầu', teamLabel: 'Số ❤ mỗi đội' },
   { key: 'minTurn', label: 'Thời gian mỗi lượt', hint: 'số giây cho mỗi câu trả lời', suffix: 's' },
   { key: 'seats', label: 'Số ghế' },
   { key: 'heartCap', label: 'Tối đa ❤' },
   { key: 'pointsPerHeart', label: 'Điểm đổi 1 ❤', hint: 'trả lời hiếm được nhiều điểm', step: 50 },
 ];
+const TEAMS = [
+  { name: 'Đỏ', color: '#ff5a7a' },
+  { name: 'Xanh', color: '#3fc8ff' },
+  { name: 'Vàng', color: '#ffd23f' },
+  { name: 'Lục', color: '#5be37a' },
+];
+const teamOf = (p) => TEAMS[p.team] || TEAMS[0];
+const teamMode = () => !!state && state.settings.teams > 1;
 const PLANE_KEYS = ['tanbinh', 'cotruong', 'sieuthanh', 'chop', 'quaixe'];
 const LEVEL_NAMES = { 1: 'dễ', 2: 'vừa', 3: 'khó' };
 const TIER_NAMES = { 1: 'Phổ biến', 2: 'Khá hiếm', 3: 'Hiếm!', 4: 'Có một không hai!' };
@@ -80,6 +89,7 @@ function hostHandle(m) {
       break;
     }
     case 'settings': room.setSettings(m.from, m.settings); break;
+    case 'team': room.setTeam(m.from, m.team); break;
     case 'start': room.start(m.from); break;
     case 'answer': room.answer(m.from, m.text); break;
     case 'leave': room.leave(m.from); break;
@@ -267,21 +277,33 @@ function renderLobby() {
   const isHost = state.hostId === me;
   $('lobbyCode').textContent = state.code;
   $('seatCount').textContent = `${state.players.length}/${state.settings.seats}`;
-  $('playerList').innerHTML = state.players.map((p) => `
+  const row = (p) => `
     <li>
       <img src="${Sprites.plane(p.plane)}" alt="" />
       <span class="${p.id === me ? 'you' : ''}">${esc(p.name)}${p.id === me ? ' (bạn)' : ''}</span>
       ${p.id === state.hostId ? '<span class="tagx">Chủ phòng</span>' : ''}
-    </li>`).join('');
+    </li>`;
+  if (teamMode()) {
+    const myTeam = state.players.find((p) => p.id === me)?.team;
+    $('playerList').innerHTML = TEAMS.slice(0, state.settings.teams).map((t, i) => {
+      const members = state.players.filter((p) => p.team === i);
+      return `<li class="team-head" style="--team:${t.color}">
+          <span>Đội ${t.name} · ${members.length}</span>
+          ${myTeam === i ? '<span class="tagx">Đội bạn</span>' : `<button class="px-btn ghost small" data-team="${i}" type="button">Vào đội</button>`}
+        </li>${members.map(row).join('')}`;
+    }).join('');
+  } else {
+    $('playerList').innerHTML = state.players.map(row).join('');
+  }
 
   $('settingsBox').innerHTML = SETTING_DEFS.map((d) => {
     const v = state.settings[d.key];
     const [min, max] = LIMITS[d.key];
     return `<div class="set-row">
-      <span class="lbl">${d.label}${d.hint ? `<small>${d.hint}</small>` : ''}</span>
+      <span class="lbl">${(teamMode() && d.teamLabel) || d.label}${d.hint ? `<small>${d.hint}</small>` : ''}</span>
       <span class="stepper">
         <button data-k="${d.key}" data-d="-1" ${!isHost || v <= min ? 'disabled' : ''} aria-label="Giảm">−</button>
-        <span class="val">${v}${d.suffix || ''}</span>
+        <span class="val">${d.fmt ? d.fmt(v) : `${v}${d.suffix || ''}`}</span>
         <button data-k="${d.key}" data-d="1" ${!isHost || v >= max ? 'disabled' : ''} aria-label="Tăng">+</button>
       </span>
     </div>`;
@@ -298,6 +320,11 @@ function renderLobby() {
     ? (enough ? `${state.players.length} người đã lên máy bay — sẵn sàng cất cánh!` : `Gửi mã ${state.code} cho bạn bè. Có thêm 1 người là bắt đầu được.`)
     : 'Đợi chủ phòng bắt đầu…';
 }
+
+$('playerList').addEventListener('click', (e) => {
+  const b = e.target.closest('button[data-team]');
+  if (b) act('team', { team: Number(b.dataset.team) });
+});
 
 $('settingsBox').addEventListener('click', (e) => {
   const b = e.target.closest('button[data-k]');
@@ -341,6 +368,8 @@ function layoutSeats() {
     el.dataset.x = x;
     el.dataset.y = y;
     el.querySelector('.nm').textContent = p.name;
+    el.classList.toggle('teamed', teamMode());
+    if (teamMode()) el.style.setProperty('--team', teamOf(p).color);
     el.querySelector('.hearts').textContent = heartsStr(p);
     el.classList.toggle('me', p.id === me);
     el.classList.toggle('left', x > w / 2 + 4);
@@ -496,6 +525,14 @@ function renderGame() {
   $('ppHeart').textContent = pph;
   $('meterFill').style.width = `${myP ? Math.min(100, (myP.bank / pph) * 100) : 0}%`;
   const slots = Math.max(state.settings.lives, myP ? myP.hearts : 0);
+  $('teamBar').hidden = !state.teams;
+  if (state.teams) {
+    $('teamBar').innerHTML = state.teams.map((t, i) => {
+      const mine = myP && myP.team === i;
+      const hearts = t.alive ? (t.hearts > 4 ? `♥×${t.hearts}` : '♥'.repeat(t.hearts)) : 'rơi rồi';
+      return `<span class="team-chip${t.alive ? '' : ' out'}${mine ? ' mine' : ''}" style="--team:${TEAMS[i].color}">Đội ${TEAMS[i].name} <b>${hearts}</b> <small>${t.points}đ</small></span>`;
+    }).join('');
+  }
   $('heartRow').innerHTML = Array.from({ length: slots }, (_, i) => `<i class="${myP && i < myP.hearts ? '' : 'empty'}"></i>`).join('');
 
   const key = r && r.turnStartedAt ? `${r.number}:${r.turnId}:${r.turnStartedAt}` : null;
@@ -559,6 +596,7 @@ $('answerInput').addEventListener('input', () => {
 
 // ---------- end ----------
 function renderEnd() {
+  if (state.teams) return renderTeamEnd();
   const winner = state.players.find((p) => p.id === state.winnerId);
   const myP = state.players.find((p) => p.id === me);
   $('winnerText').textContent = winner
@@ -567,6 +605,25 @@ function renderEnd() {
   $('winnerPlane').src = Sprites.plane(winner ? winner.plane : 'mascot', 'awake');
   const sorted = [...state.players].sort((a, b) => (b.id === state.winnerId) - (a.id === state.winnerId) || b.points - a.points);
   $('scoreList').innerHTML = sorted.map((p) => `<li>${esc(p.name)}${p.id === me ? ' (bạn)' : ''} <b>${p.points} điểm</b></li>`).join('');
+  const isHost = state.hostId === me;
+  $('againBtn').style.display = isHost ? '' : 'none';
+  $('againBtn').disabled = state.players.length < 2;
+  $('againWait').textContent = isHost ? '' : 'Đợi chủ phòng mở ván mới…';
+}
+
+function renderTeamEnd() {
+  const myP = state.players.find((p) => p.id === me);
+  const w = state.winnerTeam;
+  const wt = TEAMS[w];
+  $('winnerText').textContent = wt ? (myP && myP.team === w ? `Đội ${wt.name} thắng — đội bạn!` : `Đội ${wt.name} thắng!`) : 'Hết ván!';
+  const best = [...state.players].filter((p) => p.team === w).sort((a, b) => b.points - a.points)[0];
+  $('winnerPlane').src = Sprites.plane(best ? best.plane : 'mascot', 'awake');
+  const order = state.teams.map((t, i) => i).sort((a, b) => (b === w) - (a === w) || state.teams[b].points - state.teams[a].points);
+  $('scoreList').innerHTML = order.map((i) => {
+    const members = state.players.filter((p) => p.team === i).sort((a, b) => b.points - a.points);
+    return `<li class="team-score" style="--team:${TEAMS[i].color}">Đội ${TEAMS[i].name}${i === w ? ' 🏆' : ''} <b>${state.teams[i].points} điểm</b>
+      <small>${members.map((p) => `${esc(p.name)}${p.id === me ? ' (bạn)' : ''} ${p.points}`).join(' · ')}</small></li>`;
+  }).join('');
   const isHost = state.hostId === me;
   $('againBtn').style.display = isHost ? '' : 'none';
   $('againBtn').disabled = state.players.length < 2;
@@ -816,22 +873,30 @@ function celebrate(a) {
   if (navigator.vibrate && a.playerId === me) navigator.vibrate([60, 40, 60, 40, 200]);
 }
 
-function onBoom({ playerId, eliminated }) {
+function onBoom({ playerId, eliminated, team }) {
+  const teamed = team !== undefined && TEAMS[team];
   const cr = $('mascot');
   cr.classList.add('gone');
   const seat = seatEls.get(playerId);
   if (seat) {
     explodeAt(Number(seat.dataset.x), Number(seat.dataset.y), eliminated);
     if (eliminated) {
-      seat.classList.remove('crash');
-      void seat.offsetWidth;
-      seat.classList.add('crash');
+      const ids = teamed ? state.players.filter((q) => q.team === team).map((q) => q.id) : [playerId];
+      for (const id of ids) {
+        const s2 = seatEls.get(id);
+        if (!s2) continue;
+        s2.classList.remove('crash');
+        void s2.offsetWidth;
+        s2.classList.add('crash');
+      }
     }
   }
   if (eliminated) {
     const p0 = state.players.find((x) => x.id === playerId);
     const b = $('elimBanner');
-    b.textContent = `${playerId === me ? 'BẠN' : (p0?.name || '').toUpperCase()} BỊ LOẠI!`;
+    b.textContent = teamed
+      ? `ĐỘI ${teamed.name.toUpperCase()} BỊ LOẠI!`
+      : `${playerId === me ? 'BẠN' : (p0?.name || '').toUpperCase()} BỊ LOẠI!`;
     b.classList.remove('show');
     void b.offsetWidth;
     b.classList.add('show');
@@ -845,7 +910,8 @@ function onBoom({ playerId, eliminated }) {
   if (navigator.vibrate && playerId === me) navigator.vibrate([80, 40, 160]);
   const p = state.players.find((x) => x.id === playerId);
   floatText(playerId, eliminated ? 'Bị loại!' : '−♥');
-  if (playerId === me) toast(eliminated ? 'Bạn bị loại rồi!' : 'Nổ trên tay bạn! −♥');
+  if (teamed) toast(`Đùng! ${playerId === me ? 'Bạn' : p?.name || ''} làm đội ${teamed.name} ${eliminated ? 'bị loại' : 'mất một ♥'}`);
+  else if (playerId === me) toast(eliminated ? 'Bạn bị loại rồi!' : 'Nổ trên tay bạn! −♥');
   else if (p) toast(`Đùng! ${p.name} ${eliminated ? 'bị loại' : 'mất một ♥'}`);
   setTimeout(() => cr.classList.remove('gone'), 1600);
 }

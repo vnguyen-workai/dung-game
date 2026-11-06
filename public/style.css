@@ -491,3 +491,19 @@ button { font-family: inherit; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition: none !important; }
 }
+
+/* team mode */
+.player-list .team-head { background: transparent; border: 0; border-bottom: 3px solid var(--team); color: var(--team); font-size: 22px; padding: 8px 4px 4px; margin-top: 4px; }
+.player-list .team-head .px-btn { margin-left: auto; }
+.seat.teamed .nm { color: var(--team); }
+.seat.teamed .pl { filter: drop-shadow(0 0 0 var(--team)) drop-shadow(0 3px 0 var(--team)); }
+.seat.teamed.me .nm { text-decoration: underline; }
+.team-bar { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin: 4px 12px 0; }
+.team-bar[hidden] { display: none; }
+.team-chip { border: 2px solid var(--team); color: var(--team); background: rgba(13, 20, 48, 0.85); padding: 2px 8px; font-size: 18px; white-space: nowrap; }
+.team-chip b { color: var(--pink); font-weight: normal; }
+.team-chip small { color: #c9d3ff; font-size: 15px; }
+.team-chip.mine { box-shadow: 0 0 0 2px #fff; }
+.team-chip.out { opacity: 0.45; text-decoration: line-through; }
+.score-list .team-score { color: var(--team); }
+.score-list .team-score small { display: block; color: #c9d3ff; font-size: 16px; }
