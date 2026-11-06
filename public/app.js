@@ -338,7 +338,9 @@ function layoutSeats() {
     el.dataset.x = x;
     el.dataset.y = y;
     el.querySelector('.nm').textContent = p.name;
-    el.querySelector('.hearts').textContent = heartsStr(p);
+    const struck = !!state.round?.strikes?.includes(p.id);
+    el.querySelector('.hearts').textContent = heartsStr(p) + (struck && p.alive ? ' ✗' : '');
+    el.classList.toggle('struck', struck);
     el.classList.toggle('me', p.id === me);
     el.classList.toggle('left', x > w / 2 + 4);
     el.classList.toggle('out', !p.alive);
@@ -499,7 +501,9 @@ function renderGame() {
       $('turnHint').textContent = '';
     } else if (mine) {
       input.placeholder = 'Gõ câu trả lời…';
-      $('turnHint').textContent = input.value.trim() ? 'Tới lượt bạn — bấm BAY!' : 'Tới lượt bạn — gõ nhanh trước khi nổ!';
+      const struck = r.strikes?.includes(me);
+      $('turnHint').textContent = struck ? 'Bạn đã sai 1 lần — sai nữa là nổ!'
+        : input.value.trim() ? 'Tới lượt bạn — bấm BAY!' : 'Tới lượt bạn — chỉ được trả lời 1 lần';
       if (input.value) sendTyping();
       setTimeout(() => input.focus(), 30);
     } else {
@@ -594,14 +598,17 @@ function onAnswer(a) {
     setBubble(a.playerId, a.text, 'ok');
     floatText(a.playerId, `+${a.points} · ${TIER_NAMES[a.tier]}${a.gainedHeart ? ' +♥' : ''}`);
   } else {
-    setBubble(a.playerId, a.text, 'bad');
+    setBubble(a.playerId, a.text || a.reason, 'bad');
+    const who = state.players.find((p) => p.id === a.playerId);
     if (a.playerId === me) {
       const input = $('answerInput');
       input.classList.remove('shake');
       void input.offsetWidth;
       input.classList.add('shake');
-      input.select();
-      toast(a.reason);
+      input.value = '';
+      if (a.strike) toast(`${a.reason} — còn 1 lần, sai nữa là nổ!`);
+    } else if (a.strike && who) {
+      toast(`${who.name}: ${a.reason.toLowerCase()} ✗ — lượt chuyển tiếp`);
     }
   }
 }

@@ -250,6 +250,7 @@ button { font-family: inherit; }
 .seat .pl { width: 78px; display: block; margin: 0 auto; }
 .seat.left .pl { transform: scaleX(-1); }
 .seat.out { opacity: 0.4; filter: grayscale(1); }
+.seat.struck .hearts { color: #ffd23f; }
 .seat.turn .pl { animation: bob 0.9s ease-in-out infinite; filter: drop-shadow(0 0 6px var(--cyan)); }
 .seat.left.turn .pl { animation-name: bobL; }
 .seat .nm { font-size: 22px; color: #fff; text-shadow: 2px 2px 0 var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

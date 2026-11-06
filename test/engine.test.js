@@ -1,7 +1,7 @@
 const assert = require('assert');
 const { Room, LIMITS, config, CATS, findAnswer } = require('../public/engine');
 
-Object.assign(config, { turnFloorMs: 300, popPauseMs: 100 });
+Object.assign(config, { turnFloorMs: 30, popPauseMs: 20 });
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
 // accent handling
@@ -57,19 +57,24 @@ assert.equal(findAnswer(prov, 'Đà   Nẵng!', new Set()).label, 'đà nẵng')
   assert.ok(late.alive && late.hearts === st.settings.lives, 'late joiner gets full hearts');
   assert.equal(room.join('late2', 'L2').error, 'Phòng đã đầy');
 
-  // turn mechanics
+  // turn mechanics: one try per turn; first miss is a strike and the turn moves on
   const cat = CATS.find((c) => c.prompt === st.round.prompt);
   const labels = [...new Set([...cat.exact.values()].flat().map((v) => v.label))];
   const first = st.round.turnId;
   room.answer(first, 'xyz không có');
-  assert.equal(last('answer').reason, 'Không hợp lệ');
-  room.answer(first, labels[0]);
+  assert.equal(last('answer').reason, 'Không đúng');
+  assert.equal(last('answer').strike, true);
+  assert.ok(st.round.strikes.includes(first));
+  assert.notEqual(st.round.turnId, first, 'turn passes after a wrong answer');
+  const second = st.round.turnId;
+  room.answer(second, labels[0]);
   assert.equal(last('answer').ok, true);
-  assert.notEqual(st.round.turnId, first);
-  room.answer(st.round.turnId, labels[0]);
+  const third = st.round.turnId;
+  room.answer(third, labels[0]);
   assert.equal(last('answer').reason, 'Đã có người nói');
+  assert.notEqual(st.round.turnId, third);
   const n = events.length;
-  room.answer(first, labels[1]); // not their turn
+  room.answer(third, labels[1]); // not their turn any more
   assert.equal(events.length, n);
 
   // leaving on your turn passes the fuse on
@@ -98,6 +103,15 @@ assert.equal(findAnswer(prov, 'Đà   Nẵng!', new Set()).label, 'đà nẵng')
     await wait(150);
     assert.notEqual(t.round.prompt, c.prompt, 'new topic');
     assert.equal(t.round.turnMs, 10000, 'timer resets on a new topic');
+    // second miss by the same player in one topic explodes
+    const booms0 = events2.filter((k) => k === 'boom').length;
+    const victim = t.round.turnId;
+    tr.answer(victim, 'sai bét');
+    assert.equal(events2.filter((k) => k === 'boom').length, booms0, 'first miss: no boom');
+    tr.answer(t.round.turnId, 'cũng sai');
+    tr.answer(victim, 'sai lần hai');
+    assert.equal(events2.filter((k) => k === 'boom').length, booms0 + 1, 'second miss: boom');
+    assert.equal(t.players.find((p) => p.id === victim).hearts, t.settings.lives - 1);
     tr.close();
   }
 

@@ -63,6 +63,7 @@
   // Lookups, strongest first: exact accented alias, accent-free alias, then the same without a generic prefix.
   const CATS = CATEGORIES.map((c) => {
     const exact = new Map(), loose = new Map(), exactBare = new Map(), looseBare = new Map();
+    const compact = new Map(), shortName = new Map();
     for (const [tier, list] of Object.entries(c.answers)) {
       for (const entry of list) {
         const aliases = entry.split('|');
@@ -74,24 +75,34 @@
           const bare = stripPrefix(e);
           addTo(exactBare, bare, ans);
           addTo(looseBare, stripPrefix(normalize(e), PREFIXES_LOOSE), ans);
+          const n = normalize(e);
+          addTo(compact, n.replace(/ /g, ''), ans);
+          const words = n.split(' ');
+          if (words.length >= 3) addTo(shortName, words.slice(-2).join(' '), ans);
         }
       }
     }
-    return { id: c.id, prompt: c.prompt, exact, loose, exactBare, looseBare };
+    return { id: c.id, prompt: c.prompt, exact, loose, exactBare, looseBare, compact, shortName };
   });
 
-  function distanceAtMostOne(a, b) {
-    if (Math.abs(a.length - b.length) > 1) return false;
-    let i = 0, j = 0, edits = 0;
-    while (i < a.length && j < b.length) {
-      if (a[i] === b[j]) { i++; j++; continue; }
-      if (++edits > 1) return false;
-      if (a.length > b.length) i++;
-      else if (a.length < b.length) j++;
-      else { i++; j++; }
+  // Levenshtein distance, giving up early once it exceeds max.
+  function withinDistance(a, b, max) {
+    if (Math.abs(a.length - b.length) > max) return false;
+    let prev = Array.from({ length: b.length + 1 }, (_, j) => j);
+    for (let i = 1; i <= a.length; i++) {
+      const cur = [i];
+      let best = i;
+      for (let j = 1; j <= b.length; j++) {
+        cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+        best = Math.min(best, cur[j]);
+      }
+      if (best > max) return false;
+      prev = cur;
     }
-    return edits + (a.length - i) + (b.length - j) <= 1;
+    return prev[b.length] <= max;
   }
+
+  const typoBudget = (len) => (len >= 10 ? 2 : len >= 5 ? 1 : 0);
 
   function findAnswer(cat, text, used) {
     const e = exactForm(text);
@@ -102,12 +113,22 @@
       || pick(cat.exactBare.get(bare)) || pick(cat.exact.get(bare))
       || pick(cat.looseBare.get(looseBare)) || pick(cat.loose.get(looseBare));
     if (hit) return hit;
-    // One typo allowed on longer answers, only when it points to a single answer.
+    const only = (list) => {
+      const uniq = [...new Set(list || [])];
+      return uniq.length === 1 ? uniq[0] : null;
+    };
+    // Typed without spaces ("sontung"), or just the last two words of a long name ("việt anh").
     const n = looseBare;
-    if (n.length < 6) return null;
+    const viaCompact = pick(cat.compact.get(n.replace(/ /g, '')));
+    if (viaCompact) return viaCompact;
+    const viaShort = only(cat.shortName.get(n));
+    if (viaShort) return viaShort;
+    // Small typos on longer answers, only when they point to a single answer.
+    const budget = typoBudget(n.length);
+    if (!budget) return null;
     const found = new Set();
     for (const [k, list] of cat.loose) {
-      if (k.length >= 6 && distanceAtMostOne(n, k)) list.forEach((a) => found.add(a));
+      if (k.length >= 5 && withinDistance(n, k, Math.min(budget, typoBudget(k.length)))) list.forEach((a) => found.add(a));
     }
     return found.size === 1 ? [...found][0] : null;
   }
@@ -161,6 +182,7 @@
           turnStartedAt: r.turnStartedAt,
           turnMs: r.turnMs,
           usedCount: r.used.size,
+          strikes: [...r.strikes],
           maxAnswers: config.maxAnswers,
         },
         winnerId: this.winnerId,
@@ -244,6 +266,7 @@
         number: ((this.round && this.round.number) || 0) + 1,
         cat: this.pickCategory(),
         used: new Set(),
+        strikes: new Set(),
         turnIdx,
         turnMs: 0,
         turnStartedAt: 0,
@@ -260,10 +283,24 @@
       this.broadcast();
     }
 
+    // Time ran out: the first miss in a topic is a strike and the turn moves on; the second one explodes.
     explode() {
       const r = this.round;
       if (this.status !== 'playing' || !r) return;
-      const p = this.players[r.turnIdx];
+      this.miss(this.players[r.turnIdx], 'Hết giờ', '');
+    }
+
+    miss(p, reason, text) {
+      const r = this.round;
+      if (!r.strikes.has(p.id)) {
+        r.strikes.add(p.id);
+        this.emit('answer', { playerId: p.id, text, ok: false, reason, strike: true });
+        r.turnIdx = this.nextAliveIdx(r.turnIdx);
+        this.startTurn();
+        return;
+      }
+      clearTimeout(this.timer);
+      if (text) this.emit('answer', { playerId: p.id, text, ok: false, reason, strike: false });
       p.hearts -= 1;
       if (p.hearts <= 0) p.alive = false;
       this.emit('boom', { playerId: p.id, eliminated: !p.alive });
@@ -292,14 +329,8 @@
       if (!exactForm(text)) return;
       const hit = findAnswer(CATS[r.cat], text, r.used);
       const shown = String(text).trim().slice(0, 40);
-      if (!hit) {
-        this.emit('answer', { playerId: id, text: shown, ok: false, reason: 'Không hợp lệ' });
-        return;
-      }
-      if (r.used.has(hit.key)) {
-        this.emit('answer', { playerId: id, text: shown, ok: false, reason: 'Đã có người nói' });
-        return;
-      }
+      if (!hit) return this.miss(player, 'Không đúng', shown);
+      if (r.used.has(hit.key)) return this.miss(player, 'Đã có người nói', shown);
       r.used.add(hit.key);
       const pts = TIER_POINTS[hit.tier];
       player.points += pts;
