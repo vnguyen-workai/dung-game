@@ -42,6 +42,10 @@
     'cầu thủ', 'tuyển thủ', 'vận động viên', 'vđv', 'huấn luyện viên', 'hlv', 'dân tộc', 'lễ hội', 'câu lạc bộ', 'clb', 'đội tuyển',
     'nhạc sĩ', 'diễn viên', 'danh hài', 'nghệ sĩ', 'mc', 'nhà thơ', 'nhà văn', 'vua', 'bài hát', 'bài', 'phim', 'hãng', 'sân bay',
     'sân vận động', 'sân', 'trường', 'đại học', 'thủ đô', 'ban nhạc', 'nhóm nhạc', 'nhóm', 'chợ', 'nghề', 'giải', 'game', 'màu',
+    'nsnd', 'nsưt', 'nghệ sĩ nhân dân', 'nghệ sĩ ưu tú', 'danh ca', 'nữ ca sĩ', 'nam ca sĩ', 'cố', 'đại tướng', 'tướng',
+    'chủ tịch', 'tổng thống', 'thủ tướng', 'hoàng đế', 'nữ hoàng', 'thần', 'nữ thần', 'thánh', 'hãng xe', 'thương hiệu',
+    'ứng dụng', 'app', 'bệnh', 'nguyên tố', 'hành tinh', 'cung', 'môn võ', 'đế chế', 'trận', 'album', 'anime', 'truyện', 'sách',
+    'họa sĩ', 'bức tranh', 'tranh', 'nhà soạn nhạc', 'youtuber', 'streamer', 'tỷ phú', 'khủng long', 'thể loại', 'nhạc',
   ].map((p) => exactForm(p)).sort((a, b) => b.length - a.length);
   const PREFIXES_LOOSE = [...new Set(PREFIXES.map((p) => normalize(p)))].sort((a, b) => b.length - a.length);
 
@@ -61,7 +65,8 @@
   }
 
   // Lookups, strongest first: exact accented alias, accent-free alias, then the same without a generic prefix.
-  const CATS = CATEGORIES.map((c) => {
+  // Lookup tables are built the first time a topic is used, so loading 100+ topics stays fast.
+  function buildIndex(c) {
     const exact = new Map(), loose = new Map(), exactBare = new Map(), looseBare = new Map();
     const compact = new Map(), shortName = new Map();
     for (const [tier, list] of Object.entries(c.answers)) {
@@ -82,7 +87,16 @@
         }
       }
     }
-    return { id: c.id, prompt: c.prompt, exact, loose, exactBare, looseBare, compact, shortName };
+    return { exact, loose, exactBare, looseBare, compact, shortName };
+  }
+
+  const CATS = CATEGORIES.map((c) => {
+    let index = null;
+    const cat = { id: c.id, prompt: c.prompt };
+    for (const k of ['exact', 'loose', 'exactBare', 'looseBare', 'compact', 'shortName']) {
+      Object.defineProperty(cat, k, { get: () => (index || (index = buildIndex(c)))[k] });
+    }
+    return cat;
   });
 
   // Levenshtein distance, giving up early once it exceeds max.

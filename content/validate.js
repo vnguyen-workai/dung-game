@@ -11,7 +11,8 @@ function loose(s) {
 
 let errors = 0, warnings = 0, cats = 0, answers = 0;
 const prompts = new Map();
-for (const f of process.argv.slice(2)) {
+const TOOLS = ['build.js', 'validate.js', 'audit.js'];
+for (const f of process.argv.slice(2).filter((x) => !TOOLS.includes(path.basename(x)))) {
   const list = require(path.resolve(f));
   if (!Array.isArray(list)) { console.log(`${f}: must export an array`); errors++; continue; }
   for (const c of list) {
@@ -23,12 +24,15 @@ for (const f of process.argv.slice(2)) {
     if (prompts.has(c.prompt)) { console.log(`ERROR ${where}: duplicate prompt (also in ${prompts.get(c.prompt)})`); errors++; }
     prompts.set(c.prompt, f);
     const exact = new Map(), looseMap = new Map();
+    const seenEntries = new Set();
     let n = 0;
     for (const tier of ['1', '2', '3', '4']) {
       const list2 = (c.answers || {})[tier];
       if (!Array.isArray(list2) || !list2.length) { console.log(`ERROR ${where}: tier ${tier} missing/empty`); errors++; continue; }
       for (const entry of list2) {
         n++;
+        if (seenEntries.has(entry)) { console.log(`ERROR ${where}: duplicate entry "${entry}"`); errors++; }
+        seenEntries.add(entry);
         if (entry !== entry.toLowerCase()) { console.log(`ERROR ${where}: not lowercase: "${entry}"`); errors++; }
         for (const a of entry.split('|')) {
           if (!a.trim()) { console.log(`ERROR ${where}: empty alias in "${entry}"`); errors++; continue; }

@@ -7,7 +7,7 @@ const { execFileSync } = require('child_process');
 const dir = __dirname;
 const files = process.argv.length > 2
   ? process.argv.slice(2).map((f) => path.basename(f))
-  : fs.readdirSync(dir).filter((f) => f.endsWith('.js') && !['build.js', 'validate.js'].includes(f)).sort();
+  : fs.readdirSync(dir).filter((f) => f.endsWith('.js') && !['build.js', 'validate.js', 'audit.js'].includes(f)).sort();
 execFileSync('node', [path.join(dir, 'validate.js'), ...files.map((f) => path.join(dir, f))], { stdio: 'inherit' });
 
 const all = files.flatMap((f) => require(path.join(dir, f)));
