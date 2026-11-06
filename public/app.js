@@ -339,7 +339,7 @@ function layoutSeats() {
     el.dataset.y = y;
     el.querySelector('.nm').textContent = p.name;
     const struck = !!state.round?.strikes?.includes(p.id);
-    el.querySelector('.hearts').textContent = heartsStr(p) + (struck && p.alive ? ' ✗' : '');
+    el.querySelector('.hearts').textContent = heartsStr(p);
     el.classList.toggle('struck', struck);
     el.classList.toggle('me', p.id === me);
     el.classList.toggle('left', x > w / 2 + 4);
