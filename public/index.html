@@ -51,6 +51,7 @@
           </div>
           <p id="homeError" class="error" role="alert"></p>
         </div>
+        <p class="hint center on-sky version-tag">Phiên bản <span id="versionTag"></span></p>
         <p id="localNote" class="hint note" hidden>Chế độ thử: chưa kết nối Supabase — phòng chỉ hoạt động giữa các tab trên cùng trình duyệt.</p>
       </div>
 
@@ -180,10 +181,12 @@
     </div>
   </div>
 
+  <div id="staleBanner" class="stale-banner" hidden></div>
   <div id="toast" class="toast" role="status"></div>
   <div id="flash" class="flash"></div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0/dist/umd/supabase.js"></script>
+  <script src="version.js"></script>
   <script src="config.js"></script>
   <script src="categories.js"></script>
   <script src="engine.js"></script>

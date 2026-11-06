@@ -1,4 +1,5 @@
 const $ = (id) => document.getElementById(id);
+const VERSION = window.DUNG_VERSION || 'dev';
 const { Room, LIMITS } = window.DungEngine;
 const { Net, online } = window.DungNet;
 
@@ -64,8 +65,9 @@ function act(t, d = {}) {
 
 // Host: deliver an event to everyone, including itself.
 function hostEmit(t, d) {
-  net.send({ t, ...d });
-  onEvent({ t, ...d });
+  const msg = t === 'state' ? { t, ...d, version: VERSION } : { t, ...d };
+  net.send(msg);
+  onEvent(msg);
 }
 
 function hostHandle(m) {
@@ -564,6 +566,9 @@ function onEvent(m) {
 
 function onState(s) {
   if (!s.players.some((p) => p.id === me)) return;
+  const stale = s.version && s.version !== VERSION;
+  $('staleBanner').hidden = !stale;
+  if (stale) $('staleBanner').textContent = 'Chủ phòng đang dùng phiên bản khác — nhờ chủ phòng tải lại trang để chấm đáp án mới nhất.';
   const prevStatus = state?.status;
   if (state) {
     for (const p of s.players) {
@@ -626,3 +631,21 @@ function onBoom({ playerId, eliminated }) {
 
 window.addEventListener('resize', () => { if (state?.status === 'playing') layoutSeats(); });
 setInterval(() => { if (state?.status === 'playing') updateFuse(); }, 90);
+
+// ---------- stay up to date ----------
+// The host's browser judges every answer, so an old open tab would use old answer lists.
+$('versionTag').textContent = VERSION;
+async function checkForUpdate() {
+  if (VERSION === 'dev' || (state && state.status !== 'lobby' && state.status !== 'ended')) return;
+  try {
+    const res = await fetch(`version.js?t=${Date.now()}`, { cache: 'no-store' });
+    const latest = (await res.text()).match(/'([^']+)'/)?.[1];
+    if (latest && latest !== VERSION) {
+      if (!state) location.reload();
+      else { $('staleBanner').hidden = false; $('staleBanner').textContent = 'Có phiên bản mới — rời phòng và tải lại trang để cập nhật.'; }
+    }
+  } catch {}
+}
+setInterval(checkForUpdate, 3 * 60 * 1000);
+document.addEventListener('visibilitychange', () => { if (!document.hidden) checkForUpdate(); });
+window.addEventListener('pageshow', (e) => { if (e.persisted) checkForUpdate(); });

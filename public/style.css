@@ -317,6 +317,11 @@ button { font-family: inherit; }
 .score-list b { float: right; color: var(--pink); font-weight: 400; }
 
 /* ---------- Overlays ---------- */
+.stale-banner {
+  position: fixed; left: 0; right: 0; top: 0; z-index: 35; padding: 8px 14px; text-align: center;
+  background: var(--gold); color: var(--ink); border-bottom: var(--px) solid var(--ink); font-size: 19px;
+}
+.version-tag { font-size: 16px; opacity: 0.8; margin-top: 0; }
 .modal { position: fixed; inset: 0; background: rgba(11, 16, 36, 0.6); display: grid; place-items: center; padding: 16px; z-index: 30; }
 .modal-card { max-width: 520px; width: 100%; }
 .how-list { margin: 0; padding-left: 28px; display: grid; gap: 6px; }
