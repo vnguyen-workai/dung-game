@@ -52,7 +52,10 @@ assert.equal(findAnswer(prov, 'Đà   Nẵng!', new Set()).label, 'đà nẵng')
   assert.equal(st.status, 'lobby');
   room.start('h');
   assert.equal(st.status, 'playing');
-  assert.equal(room.join('late', 'L').ok, false);
+  assert.equal(room.join('late', 'L').ok, true, 'can join mid-game');
+  const late = st.players.find((p) => p.id === 'late');
+  assert.ok(late.alive && late.hearts === st.settings.lives, 'late joiner gets full hearts');
+  assert.equal(room.join('late2', 'L2').error, 'Phòng đã đầy');
 
   // turn mechanics
   const cat = CATS.find((c) => c.prompt === st.round.prompt);
@@ -87,9 +90,30 @@ assert.equal(findAnswer(prov, 'Đà   Nẵng!', new Set()).label, 'đà nẵng')
   // replay, then everyone else leaves
   room.start('h');
   assert.equal(st.status, 'playing');
-  assert.equal(st.players.length, 18, 'players who left are dropped on replay');
+  assert.equal(st.players.length, 19, 'players who left are dropped on replay');
   for (const p of st.players) if (p.id !== 'h') room.leave(p.id);
   assert.equal(st.status, 'ended');
   room.close();
+
+  // solo: start alone, game runs until out of hearts, no winner
+  let solo = null;
+  const sr = new Room('SOLO', 's', 'Solo', (t, d) => { if (t === 'state') solo = d; });
+  sr.setSettings('s', { ...solo.settings, minTurn: 0, lives: 2 });
+  sr.start('s');
+  assert.equal(solo.status, 'playing', 'can start alone');
+  assert.equal(solo.round.turnId, 's');
+  await wait(1200);
+  assert.equal(solo.status, 'playing', 'one lost heart does not end a solo game');
+  while (solo.status !== 'ended' && Date.now() < deadline + 30000) await wait(50);
+  assert.equal(solo.status, 'ended');
+  assert.equal(solo.winnerId, null);
+
+  // solo, then a friend joins mid-game: last one flying wins
+  sr.start('s');
+  assert.equal(sr.join('f', 'Friend').ok, true);
+  assert.equal(solo.players.length, 2);
+  while (solo.status !== 'ended') await wait(50);
+  assert.ok(['s', 'f'].includes(solo.winnerId), 'a winner once a friend joined');
+  sr.close();
   console.log(`ALL TESTS PASSED (${booms} booms, ${CATS.length} categories)`);
 })();

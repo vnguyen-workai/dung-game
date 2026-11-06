@@ -203,6 +203,8 @@ button { font-family: inherit; }
   padding: 4px 14px; display: flex; flex-direction: column; min-width: 92px;
 }
 .hud-box.right { align-items: flex-end; }
+.hud-box.invite { cursor: pointer; }
+.hud-box.invite:hover { border-color: var(--cyan); }
 .hud-label { font-size: 17px; letter-spacing: 3px; text-transform: uppercase; color: var(--muted); }
 .hud-val { font-size: 34px; line-height: 1; letter-spacing: 3px; }
 .hud-val.cyan { color: var(--cyan); text-shadow: 0 0 10px rgba(95, 242, 255, 0.5); }

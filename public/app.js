@@ -256,6 +256,7 @@ $('copyLinkBtn').onclick = async () => {
 };
 
 $('startBtn').onclick = () => act('start');
+$('inviteBox').onclick = () => $('copyLinkBtn').click();
 $('againBtn').onclick = () => act('start');
 
 // ---------- lobby ----------
@@ -286,11 +287,9 @@ function renderLobby() {
     ? 'Giữ trang này mở trong lúc chơi — máy chủ phòng điều khiển cả ván.'
     : 'Chỉ chủ phòng mới đổi được cài đặt.';
 
-  const enough = state.players.length >= 2;
   $('startBtn').style.display = isHost ? '' : 'none';
-  $('startBtn').disabled = !enough;
   $('lobbyWait').textContent = isHost
-    ? (enough ? '' : 'Cần ít nhất 2 người. Gửi mã phòng cho bạn bè nhé!')
+    ? (state.players.length < 2 ? 'Bay một mình cũng được — bạn bè vào bằng mã bất cứ lúc nào.' : '')
     : 'Đợi chủ phòng bắt đầu…';
 }
 
@@ -352,7 +351,8 @@ function moveMascot() {
   const seat = r && r.turnStartedAt ? seatEls.get(r.turnId) : null;
   const cx = arena.clientWidth / 2;
   const cy = arena.clientHeight / 2;
-  const pull = arena.classList.contains('crowded') ? 0.5 : 0.34;
+  const n = state.players.length;
+  const pull = n > 8 ? 0.5 : n > 3 ? 0.34 : 0.12;
   cr.style.left = `${seat ? cx + (Number(seat.dataset.x) - cx) * pull : cx}px`;
   cr.style.top = `${seat ? cy + (Number(seat.dataset.y) - cy) * pull : cy}px`;
   cr.classList.toggle('facing-left', !!seat && Number(seat.dataset.x) < cx - 4);
@@ -444,7 +444,7 @@ function renderGame() {
       input.placeholder = 'Chuẩn bị vòng mới…';
       $('turnHint').textContent = '';
     } else if (mine) {
-      input.placeholder = 'Tới lượt bạn! Gõ nhanh…';
+      input.placeholder = 'Gõ câu trả lời…';
       $('turnHint').textContent = 'Tới lượt bạn — gõ nhanh trước khi nổ!';
       setTimeout(() => input.focus(), 30);
     } else {
@@ -478,13 +478,15 @@ $('answerInput').addEventListener('input', () => {
 // ---------- end ----------
 function renderEnd() {
   const winner = state.players.find((p) => p.id === state.winnerId);
-  $('winnerText').textContent = winner ? (winner.id === me ? 'Bạn thắng!' : `${winner.name} thắng!`) : 'Hết ván!';
+  const myP = state.players.find((p) => p.id === me);
+  $('winnerText').textContent = winner
+    ? (winner.id === me ? 'Bạn thắng!' : `${winner.name} thắng!`)
+    : `Hết ván! Bạn được ${myP ? myP.points : 0} điểm`;
   $('winnerPlane').src = Sprites.plane(winner ? winner.plane : 'mascot', 'awake');
   const sorted = [...state.players].sort((a, b) => (b.id === state.winnerId) - (a.id === state.winnerId) || b.points - a.points);
   $('scoreList').innerHTML = sorted.map((p) => `<li>${esc(p.name)}${p.id === me ? ' (bạn)' : ''} <b>${p.points} điểm</b></li>`).join('');
   const isHost = state.hostId === me;
   $('againBtn').style.display = isHost ? '' : 'none';
-  $('againBtn').disabled = state.players.length < 2;
   $('againWait').textContent = isHost ? '' : 'Đợi chủ phòng mở ván mới…';
 }
 
@@ -499,6 +501,11 @@ function onEvent(m) {
 function onState(s) {
   if (!s.players.some((p) => p.id === me)) return;
   const prevStatus = state?.status;
+  if (state) {
+    for (const p of s.players) {
+      if (p.id !== me && !state.players.some((q) => q.id === p.id)) toast(`${p.name} vừa vào phòng`);
+    }
+  }
   state = s;
   hostId = s.hostId;
   if (s.status === 'lobby') { show('lobby'); renderLobby(); }

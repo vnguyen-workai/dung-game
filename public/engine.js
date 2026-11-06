@@ -87,6 +87,7 @@
       this.recentCats = [];
       this.round = null;
       this.winnerId = null;
+      this.participants = 0;
       this.timer = null;
       this.join(hostId, hostName, hostPlane);
     }
@@ -118,9 +119,13 @@
 
     join(id, name, plane) {
       if (this.players.some((p) => p.id === id)) { this.broadcast(); return { ok: true }; }
-      if (this.status === 'playing') return { ok: false, error: 'Phòng đang chơi, đợi ván sau nhé' };
-      if (this.players.length >= this.settings.seats) return { ok: false, error: 'Phòng đã đầy' };
-      this.players.push({ id, name: cleanName(name), plane: PLANES.includes(plane) ? plane : PLANES[0], hearts: 0, points: 0, bank: 0, alive: false });
+      if (this.players.filter((p) => !p.left).length >= this.settings.seats) return { ok: false, error: 'Phòng đã đầy' };
+      const playing = this.status === 'playing';
+      this.players.push({
+        id, name: cleanName(name), plane: PLANES.includes(plane) ? plane : PLANES[0],
+        hearts: playing ? this.settings.lives : 0, points: 0, bank: 0, alive: playing,
+      });
+      if (playing) this.participants += 1;
       this.broadcast();
       return { ok: true };
     }
@@ -135,8 +140,9 @@
     start(id) {
       if (id !== this.hostId || this.status === 'playing') return;
       this.players = this.players.filter((p) => !p.left);
-      if (this.players.length < 2) return;
+      if (this.players.length < 1) return;
       this.status = 'playing';
+      this.participants = this.players.length;
       this.winnerId = null;
       this.round = null;
       this.recentCats = [];
@@ -151,6 +157,12 @@
 
     aliveCount() {
       return this.players.filter((p) => p.alive).length;
+    }
+
+    // Solo: play until out of hearts. With company: last plane flying wins.
+    isOver() {
+      const alive = this.aliveCount();
+      return alive === 0 || (alive === 1 && this.participants >= 2);
     }
 
     nextAliveIdx(fromIdx) {
@@ -202,7 +214,7 @@
       p.hearts -= 1;
       if (p.hearts <= 0) p.alive = false;
       this.emit('boom', { playerId: p.id, eliminated: !p.alive });
-      if (this.aliveCount() <= 1) return this.end();
+      if (this.isOver()) return this.end();
       const next = this.nextAliveIdx(r.turnIdx);
       r.turnStartedAt = 0;
       this.broadcast();
@@ -214,7 +226,7 @@
     end() {
       clearTimeout(this.timer);
       this.status = 'ended';
-      const winner = this.players.find((p) => p.alive);
+      const winner = this.participants >= 2 && this.players.find((p) => p.alive);
       this.winnerId = winner ? winner.id : null;
       this.broadcast();
     }
@@ -261,7 +273,7 @@
         p.alive = false;
         p.hearts = 0;
         p.left = true;
-        if (this.aliveCount() <= 1) return this.end();
+        if (this.isOver()) return this.end();
         if (wasTurn) {
           this.round.turnIdx = this.nextAliveIdx(idx);
           this.startTurn();
