@@ -7,6 +7,7 @@
   // Every turn gets the full time from the room settings. A topic ends after a number of correct answers
   // that depends on how many players are still in: fewer players, shorter topics.
   const config = { turnFloorMs: 3000, popPauseMs: 1600, topicIntroMs: 2200, legendBonusMs: 3000 };
+  const levelForRound = (n) => (n <= 3 ? 1 : n <= 6 ? 2 : 3);
   const answersForPlayers = (alive) => (alive <= 2 ? 4 : alive === 3 ? 5 : 7);
   const LIMITS = {
     lives: [1, 5],
@@ -111,7 +112,7 @@
 
   const CATS = CATEGORIES.map((c) => {
     let index = null;
-    const cat = { id: c.id, prompt: c.prompt };
+    const cat = { id: c.id, prompt: c.prompt, level: c.level || 2 };
     for (const k of ['exact', 'loose', 'exactBare', 'looseBare', 'compact', 'shortName']) {
       Object.defineProperty(cat, k, { get: () => (index || (index = buildIndex(c)))[k] });
     }
@@ -211,6 +212,7 @@
         round: r && {
           number: r.number,
           prompt: CATS[r.cat].prompt,
+          level: CATS[r.cat].level,
           turnId: this.players[r.turnIdx] && this.players[r.turnIdx].id,
           turnStartedAt: r.turnStartedAt,
           turnMs: r.turnMs,
@@ -282,9 +284,13 @@
       return -1;
     }
 
-    pickCategory() {
+    // Topics get harder the deeper the game goes: rounds 1–3 easy, 4–6 medium, 7+ hard.
+    pickCategory(roundNumber) {
       const recent = this.recentCats;
-      const pool = CATS.map((_, i) => i).filter((i) => !recent.includes(i));
+      const level = levelForRound(roundNumber);
+      const fresh = CATS.map((_, i) => i).filter((i) => !recent.includes(i));
+      const atLevel = fresh.filter((i) => CATS[i].level === level);
+      const pool = atLevel.length ? atLevel : fresh;
       const cat = pool[Math.floor(Math.random() * pool.length)];
       recent.push(cat);
       if (recent.length > Math.min(10, CATS.length - 1)) recent.shift();
@@ -296,7 +302,7 @@
       if (!this.players[turnIdx].alive) turnIdx = this.nextAliveIdx(turnIdx);
       this.round = {
         number: ((this.round && this.round.number) || 0) + 1,
-        cat: this.pickCategory(),
+        cat: this.pickCategory(((this.round && this.round.number) || 0) + 1),
         used: new Set(),
         turnIdx,
         turnMs: 0,
@@ -416,5 +422,5 @@
     }
   }
 
-  return { Room, PLANES, config, answersForPlayers, CATS, LIMITS, normalize, stripPrefix, findAnswer, clampSettings };
+  return { Room, PLANES, config, answersForPlayers, levelForRound, CATS, LIMITS, normalize, stripPrefix, findAnswer, clampSettings };
 });

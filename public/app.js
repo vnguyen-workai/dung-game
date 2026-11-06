@@ -11,6 +11,7 @@ const SETTING_DEFS = [
   { key: 'pointsPerHeart', label: 'Điểm đổi 1 ❤', hint: 'trả lời hiếm được nhiều điểm', step: 50 },
 ];
 const PLANE_KEYS = ['tanbinh', 'cotruong', 'sieuthanh', 'chop', 'quaixe'];
+const LEVEL_NAMES = { 1: 'dễ', 2: 'vừa', 3: 'khó' };
 const TIER_NAMES = { 1: 'Phổ biến', 2: 'Khá hiếm', 3: 'Hiếm!', 4: 'Có một không hai!' };
 const JOIN_TIMEOUT_MS = 5000;
 
@@ -468,7 +469,7 @@ let introRound = null;
 function showTopicIntro(r) {
   if (!r || r.number === introRound) return;
   introRound = r.number;
-  $('topicIntroLabel').textContent = r.number === 1 ? 'Cất cánh! · Chủ đề đầu tiên' : `Chủ đề mới · Vòng ${r.number}`;
+  $('topicIntroLabel').textContent = `${r.number === 1 ? 'Cất cánh! · Chủ đề đầu tiên' : `Chủ đề mới · Vòng ${r.number}`} · ${LEVEL_NAMES[r.level] || ''}`;
   const m = r.prompt.match(/^(Kể tên (?:một )?)(.*)$/);
   const lead = m ? m[1].trim() : '';
   const rest = m ? m[2] : r.prompt;
@@ -486,7 +487,7 @@ function renderGame() {
   $('gameCode').textContent = state.code;
   $('roundNum').textContent = r ? r.number : 1;
   $('promptText').textContent = r ? r.prompt : '';
-  $('usedCount').textContent = r ? `câu đúng ${r.usedCount}/${r.maxAnswers}` : '';
+  $('usedCount').textContent = r ? `${LEVEL_NAMES[r.level] || ''} · câu đúng ${r.usedCount}/${r.maxAnswers}` : '';
 
   const myP = state.players.find((p) => p.id === me);
   const pph = state.settings.pointsPerHeart;

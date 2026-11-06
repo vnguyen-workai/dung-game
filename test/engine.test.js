@@ -1,5 +1,6 @@
 const assert = require('assert');
-const { Room, LIMITS, config, CATS, findAnswer, answersForPlayers } = require('../public/engine');
+const { Room, LIMITS, config, CATS, findAnswer, answersForPlayers, levelForRound } = require('../public/engine');
+assert.deepEqual([1, 3, 4, 6, 7, 20].map(levelForRound), [1, 1, 2, 2, 3, 3]);
 assert.deepEqual([2, 3, 4, 10].map(answersForPlayers), [4, 5, 7, 7]);
 
 Object.assign(config, { turnFloorMs: 30, popPauseMs: 20, topicIntroMs: 0, legendBonusMs: 0 });
@@ -59,6 +60,7 @@ assert.equal(findAnswer(langs, 'c', new Set()).label, 'c');
   assert.equal(st.status, 'lobby');
   room.start('h');
   assert.equal(st.status, 'playing');
+  assert.equal(st.round.level, 1, 'first topic is easy');
   assert.equal(room.join('late', 'L').ok, true, 'can join mid-game');
   const late = st.players.find((p) => p.id === 'late');
   assert.ok(late.alive && late.hearts === st.settings.lives, 'late joiner gets full hearts');
@@ -123,10 +125,15 @@ assert.equal(findAnswer(langs, 'c', new Set()).label, 'c');
   }
 
   // play to the end
+  const levelsSeen = new Map();
+  const watchLevels = setInterval(() => { if (st.round) levelsSeen.set(st.round.number, st.round.level); }, 5);
   const deadline = Date.now() + 60000;
   while (st.status !== 'ended' && Date.now() < deadline) await wait(50);
   assert.equal(st.status, 'ended');
   assert.ok(st.winnerId);
+  clearInterval(watchLevels);
+  for (const [n, lvl] of levelsSeen) assert.equal(lvl, levelForRound(n), `round ${n} level`);
+  assert.ok([...levelsSeen.values()].includes(3), 'reached hard topics');
   const booms = events.filter((e) => e.t === 'boom').length;
   assert.ok(booms >= 18 * 2 - 1, `booms ${booms}`);
   assert.equal(st.players.filter((p) => p.alive).length, 1);

@@ -1,0 +1,21 @@
+{
+  "_note": "1 = dễ (vòng 1–3), 3 = khó (vòng 7+). Topics not listed are 2 = vừa (vòng 4–6).",
+  "easy": [
+    "vn-tv-shows", "vn-brands", "doraemon-conan", "dog-cat-breeds", "spices-sauces", "clothing-accessories",
+    "electronic-devices", "weather-nature", "toys", "tools", "trees", "birds", "fish-seafood", "insects-reptiles",
+    "vegetables", "flowers", "household-items", "school-supplies", "body-parts", "colors", "musical-instruments",
+    "school-subjects", "video-games", "drinks", "vn-actors", "vn-songs", "vn-banh", "world-songs", "kpop-groups",
+    "animated-films", "pokemon", "world-desserts", "world-shapes", "world-singers", "world-actors", "world-films",
+    "world-characters", "world-foods", "world-tech", "world-vehicle-brands", "sneakers", "moba-heroes", "tay-du-ky",
+    "vn-folk-tales", "anime-manga", "vn-comedians-mcs", "world-holidays", "world-space", "asia-oceania-countries"
+  ],
+  "hard": [
+    "africa-capitals", "canada-australia-germany", "nfl-mlb-teams", "old-place-names", "shakespeare-works",
+    "classical-works", "famous-sculptures", "nobel-laureates", "bible-characters", "art-philosophy-movements",
+    "olympic-host-cities", "oscar-best-picture", "philosophers", "world-monarchs", "explorers-astronauts",
+    "fashion-designers", "jewelry-brands", "world-albums", "world-djs", "classical-composers", "world-empires",
+    "world-wars", "world-natural-areas", "world-streets", "us-presidents", "ballon-dor-winners", "east-asia-places",
+    "world-universities", "vn-instruments", "vn-lakes-waterfalls", "football-coaches", "famous-stadiums",
+    "luxury-hotels", "world-writers", "world-airports", "chemical-compounds", "world-constellations", "world-gems"
+  ]
+}
