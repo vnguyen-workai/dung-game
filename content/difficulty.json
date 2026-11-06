@@ -63,7 +63,22 @@
     "phone-brands-models",
     "disney-pixar-characters",
     "marvel-dc-characters",
-    "video-game-characters"
+    "video-game-characters",
+    "animals-one-syllable",
+    "egg-laying-animals",
+    "horned-animals",
+    "bathroom-items",
+    "airport-things",
+    "beach-camping-items",
+    "yellow-things",
+    "green-foods",
+    "special-vehicles",
+    "hairstyles",
+    "vn-children-songs",
+    "mobile-games",
+    "id-documents",
+    "classroom-things",
+    "wallet-pocket-items"
   ],
   "hard": [
     "africa-capitals",
@@ -131,6 +146,19 @@
     "viruses-bacteria",
     "space-missions",
     "famous-constants-numbers",
-    "cell-biology"
+    "cell-biology",
+    "place-nicknames",
+    "loanwords",
+    "national-animals",
+    "star-flags",
+    "fonts",
+    "flightless-birds",
+    "hp-spells",
+    "animal-idioms",
+    "yoga-poses",
+    "moons-dwarf-planets",
+    "sharks-whales",
+    "venomous-animals",
+    "one-word-countries"
   ]
 }
