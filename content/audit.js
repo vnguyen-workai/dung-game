@@ -8,7 +8,11 @@ const Module = require('module');
 
 const dir = __dirname;
 const files = fs.readdirSync(dir).filter((f) => f.endsWith('.js') && !['build.js', 'validate.js', 'audit.js'].includes(f));
-const categories = files.flatMap((f) => { delete require.cache[path.join(dir, f)]; return require(path.join(dir, f)); });
+// Files another agent is still writing may not load yet; skip them instead of failing.
+const categories = files.flatMap((f) => {
+  try { delete require.cache[path.join(dir, f)]; return require(path.join(dir, f)); }
+  catch (e) { console.log(`(skipping ${f}: ${e.message.split('\n')[0]})`); return []; }
+});
 
 // Load the engine with these categories instead of the built public/categories.js.
 const enginePath = path.join(dir, '..', 'public', 'engine.js');

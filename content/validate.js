@@ -13,7 +13,8 @@ let errors = 0, warnings = 0, cats = 0, answers = 0;
 const prompts = new Map();
 const TOOLS = ['build.js', 'validate.js', 'audit.js'];
 for (const f of process.argv.slice(2).filter((x) => !TOOLS.includes(path.basename(x)))) {
-  const list = require(path.resolve(f));
+  let list;
+  try { list = require(path.resolve(f)); } catch (e) { console.log(`ERROR ${path.basename(f)}: cannot load (${e.message.split('\n')[0]})`); errors++; continue; }
   if (!Array.isArray(list)) { console.log(`${f}: must export an array`); errors++; continue; }
   for (const c of list) {
     cats++;
