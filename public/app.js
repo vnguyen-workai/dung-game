@@ -502,8 +502,8 @@ function renderGame() {
     } else if (mine) {
       input.placeholder = 'Gõ câu trả lời…';
       const struck = r.strikes?.includes(me);
-      $('turnHint').textContent = struck ? 'Bạn đã sai 1 lần — sai nữa là nổ!'
-        : input.value.trim() ? 'Tới lượt bạn — bấm BAY!' : 'Tới lượt bạn — chỉ được trả lời 1 lần';
+      $('turnHint').textContent = struck ? 'Bạn đã hết giờ 1 lần — lần này hết giờ là nổ!'
+        : input.value.trim() ? 'Tới lượt bạn — bấm BAY!' : 'Tới lượt bạn — sai thì gõ lại tới khi đúng';
       if (input.value) sendTyping();
       setTimeout(() => input.focus(), 30);
     } else {
@@ -605,10 +605,10 @@ function onAnswer(a) {
       input.classList.remove('shake');
       void input.offsetWidth;
       input.classList.add('shake');
-      input.value = '';
-      if (a.strike) toast(`${a.reason} — còn 1 lần, sai nữa là nổ!`);
+      if (a.strike) { input.value = ''; toast('Hết giờ! ✗ — lần sau hết giờ nữa là nổ'); }
+      else { input.select(); toast(`${a.reason} — thử lại nhanh!`); }
     } else if (a.strike && who) {
-      toast(`${who.name}: ${a.reason.toLowerCase()} ✗ — lượt chuyển tiếp`);
+      toast(`${who.name} hết giờ ✗ — lượt chuyển tiếp`);
     }
   }
 }

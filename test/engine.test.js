@@ -57,24 +57,23 @@ assert.equal(findAnswer(prov, 'Đà   Nẵng!', new Set()).label, 'đà nẵng')
   assert.ok(late.alive && late.hearts === st.settings.lives, 'late joiner gets full hearts');
   assert.equal(room.join('late2', 'L2').error, 'Phòng đã đầy');
 
-  // turn mechanics: one try per turn; first miss is a strike and the turn moves on
+  // turn mechanics: wrong answers are rejected and the same player keeps trying
   const cat = CATS.find((c) => c.prompt === st.round.prompt);
   const labels = [...new Set([...cat.exact.values()].flat().map((v) => v.label))];
   const first = st.round.turnId;
   room.answer(first, 'xyz không có');
   assert.equal(last('answer').reason, 'Không đúng');
-  assert.equal(last('answer').strike, true);
-  assert.ok(st.round.strikes.includes(first));
-  assert.notEqual(st.round.turnId, first, 'turn passes after a wrong answer');
+  assert.equal(st.round.turnId, first, 'still the same player after a wrong answer');
+  assert.ok(!st.round.strikes.includes(first), 'no strike for a wrong answer');
+  room.answer(first, labels[0]);
+  assert.equal(last('answer').ok, true);
+  assert.notEqual(st.round.turnId, first);
   const second = st.round.turnId;
   room.answer(second, labels[0]);
-  assert.equal(last('answer').ok, true);
-  const third = st.round.turnId;
-  room.answer(third, labels[0]);
   assert.equal(last('answer').reason, 'Đã có người nói');
-  assert.notEqual(st.round.turnId, third);
+  assert.equal(st.round.turnId, second);
   const n = events.length;
-  room.answer(third, labels[1]); // not their turn any more
+  room.answer(first, labels[1]); // not their turn
   assert.equal(events.length, n);
 
   // leaving on your turn passes the fuse on
@@ -103,14 +102,19 @@ assert.equal(findAnswer(prov, 'Đà   Nẵng!', new Set()).label, 'đà nẵng')
     await wait(150);
     assert.notEqual(t.round.prompt, c.prompt, 'new topic');
     assert.equal(t.round.turnMs, 10000, 'timer resets on a new topic');
-    // second miss by the same player in one topic explodes
+    // wrong answers never explode; running out of time twice in one topic does
     const booms0 = events2.filter((k) => k === 'boom').length;
     const victim = t.round.turnId;
     tr.answer(victim, 'sai bét');
-    assert.equal(events2.filter((k) => k === 'boom').length, booms0, 'first miss: no boom');
-    tr.answer(t.round.turnId, 'cũng sai');
-    tr.answer(victim, 'sai lần hai');
-    assert.equal(events2.filter((k) => k === 'boom').length, booms0 + 1, 'second miss: boom');
+    tr.answer(victim, 'sai nữa');
+    assert.equal(t.round.turnId, victim);
+    assert.equal(events2.filter((k) => k === 'boom').length, booms0, 'wrong answers: no boom');
+    tr.explode(); // victim times out: strike, turn moves on
+    assert.ok(t.round.strikes.includes(victim));
+    assert.notEqual(t.round.turnId, victim);
+    tr.explode(); // other player times out: strike
+    tr.explode(); // victim times out again: boom
+    assert.equal(events2.filter((k) => k === 'boom').length, booms0 + 1, 'second timeout: boom');
     assert.equal(t.players.find((p) => p.id === victim).hearts, t.settings.lives - 1);
     tr.close();
   }

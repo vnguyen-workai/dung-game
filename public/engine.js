@@ -283,7 +283,7 @@
       this.broadcast();
     }
 
-    // Time ran out: the first miss in a topic is a strike and the turn moves on; the second one explodes.
+    // Time ran out: the first time in a topic is a strike and the turn moves on; the second one explodes.
     explode() {
       const r = this.round;
       if (this.status !== 'playing' || !r) return;
@@ -329,8 +329,9 @@
       if (!exactForm(text)) return;
       const hit = findAnswer(CATS[r.cat], text, r.used);
       const shown = String(text).trim().slice(0, 40);
-      if (!hit) return this.miss(player, 'Không đúng', shown);
-      if (r.used.has(hit.key)) return this.miss(player, 'Đã có người nói', shown);
+      // Wrong answers just get rejected: the same player keeps trying until the time runs out.
+      if (!hit) return this.emit('answer', { playerId: id, text: shown, ok: false, reason: 'Không đúng' });
+      if (r.used.has(hit.key)) return this.emit('answer', { playerId: id, text: shown, ok: false, reason: 'Đã có người nói' });
       r.used.add(hit.key);
       const pts = TIER_POINTS[hit.tier];
       player.points += pts;
