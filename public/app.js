@@ -338,9 +338,7 @@ function layoutSeats() {
     el.dataset.x = x;
     el.dataset.y = y;
     el.querySelector('.nm').textContent = p.name;
-    const struck = !!state.round?.strikes?.includes(p.id);
     el.querySelector('.hearts').textContent = heartsStr(p);
-    el.classList.toggle('struck', struck);
     el.classList.toggle('me', p.id === me);
     el.classList.toggle('left', x > w / 2 + 4);
     el.classList.toggle('out', !p.alive);
@@ -501,9 +499,7 @@ function renderGame() {
       $('turnHint').textContent = '';
     } else if (mine) {
       input.placeholder = 'Gõ câu trả lời…';
-      const struck = r.strikes?.includes(me);
-      $('turnHint').textContent = struck ? 'Bạn đã hết giờ 1 lần — lần này hết giờ là nổ!'
-        : input.value.trim() ? 'Tới lượt bạn — bấm BAY!' : 'Tới lượt bạn — sai thì gõ lại tới khi đúng';
+      $('turnHint').textContent = input.value.trim() ? 'Tới lượt bạn — bấm BAY!' : 'Tới lượt bạn — sai thì gõ lại, hết giờ là nổ!';
       if (input.value) sendTyping();
       setTimeout(() => input.focus(), 30);
     } else {
@@ -605,10 +601,8 @@ function onAnswer(a) {
       input.classList.remove('shake');
       void input.offsetWidth;
       input.classList.add('shake');
-      if (a.strike) { input.value = ''; toast('Hết giờ! ✗ — lần sau hết giờ nữa là nổ'); }
-      else { input.select(); toast(`${a.reason} — thử lại nhanh!`); }
-    } else if (a.strike && who) {
-      toast(`${who.name} hết giờ ✗ — lượt chuyển tiếp`);
+      input.select();
+      toast(`${a.reason} — thử lại nhanh!`);
     }
   }
 }

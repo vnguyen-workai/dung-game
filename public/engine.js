@@ -182,7 +182,6 @@
           turnStartedAt: r.turnStartedAt,
           turnMs: r.turnMs,
           usedCount: r.used.size,
-          strikes: [...r.strikes],
           maxAnswers: config.maxAnswers,
         },
         winnerId: this.winnerId,
@@ -266,7 +265,6 @@
         number: ((this.round && this.round.number) || 0) + 1,
         cat: this.pickCategory(),
         used: new Set(),
-        strikes: new Set(),
         turnIdx,
         turnMs: 0,
         turnStartedAt: 0,
@@ -283,24 +281,12 @@
       this.broadcast();
     }
 
-    // Time ran out: the first time in a topic is a strike and the turn moves on; the second one explodes.
+    // Time ran out: the plane explodes on the current player.
     explode() {
       const r = this.round;
       if (this.status !== 'playing' || !r) return;
-      this.miss(this.players[r.turnIdx], 'Hết giờ', '');
-    }
-
-    miss(p, reason, text) {
-      const r = this.round;
-      if (!r.strikes.has(p.id)) {
-        r.strikes.add(p.id);
-        this.emit('answer', { playerId: p.id, text, ok: false, reason, strike: true });
-        r.turnIdx = this.nextAliveIdx(r.turnIdx);
-        this.startTurn();
-        return;
-      }
       clearTimeout(this.timer);
-      if (text) this.emit('answer', { playerId: p.id, text, ok: false, reason, strike: false });
+      const p = this.players[r.turnIdx];
       p.hearts -= 1;
       if (p.hearts <= 0) p.alive = false;
       this.emit('boom', { playerId: p.id, eliminated: !p.alive });

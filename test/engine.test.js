@@ -64,7 +64,6 @@ assert.equal(findAnswer(prov, 'Đà   Nẵng!', new Set()).label, 'đà nẵng')
   room.answer(first, 'xyz không có');
   assert.equal(last('answer').reason, 'Không đúng');
   assert.equal(st.round.turnId, first, 'still the same player after a wrong answer');
-  assert.ok(!st.round.strikes.includes(first), 'no strike for a wrong answer');
   room.answer(first, labels[0]);
   assert.equal(last('answer').ok, true);
   assert.notEqual(st.round.turnId, first);
@@ -109,12 +108,8 @@ assert.equal(findAnswer(prov, 'Đà   Nẵng!', new Set()).label, 'đà nẵng')
     tr.answer(victim, 'sai nữa');
     assert.equal(t.round.turnId, victim);
     assert.equal(events2.filter((k) => k === 'boom').length, booms0, 'wrong answers: no boom');
-    tr.explode(); // victim times out: strike, turn moves on
-    assert.ok(t.round.strikes.includes(victim));
-    assert.notEqual(t.round.turnId, victim);
-    tr.explode(); // other player times out: strike
-    tr.explode(); // victim times out again: boom
-    assert.equal(events2.filter((k) => k === 'boom').length, booms0 + 1, 'second timeout: boom');
+    tr.explode(); // victim runs out of time: boom straight away
+    assert.equal(events2.filter((k) => k === 'boom').length, booms0 + 1, 'timeout: boom');
     assert.equal(t.players.find((p) => p.id === victim).hearts, t.settings.lives - 1);
     tr.close();
   }
