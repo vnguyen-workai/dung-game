@@ -101,9 +101,11 @@
           const e = exactForm(a);
           addTo(exact, e, ans);
           addTo(loose, normalize(e), ans);
+          // Very short leftovers ("chùa cầu" → "cầu") would turn a generic word into an answer.
           const bare = stripPrefix(e);
-          addTo(exactBare, bare, ans);
-          addTo(looseBare, stripPrefix(normalize(e), PREFIXES_LOOSE), ans);
+          if (bare.length >= 4 || bare === e) addTo(exactBare, bare, ans);
+          const lb = stripPrefix(normalize(e), PREFIXES_LOOSE);
+          if (lb.length >= 4 || lb === normalize(e)) addTo(looseBare, lb, ans);
           const n = normalize(e);
           addTo(compact, n.replace(/ /g, ''), ans);
           const words = n.split(' ');
