@@ -95,25 +95,19 @@ assert.equal(findAnswer(prov, 'Đà   Nẵng!', new Set()).label, 'đà nẵng')
   assert.equal(st.status, 'ended');
   room.close();
 
-  // solo: start alone, game runs until out of hearts, no winner
+  // cannot start alone; a friend who joins mid-game gets full hearts
   let solo = null;
   const sr = new Room('SOLO', 's', 'Solo', (t, d) => { if (t === 'state') solo = d; });
   sr.setSettings('s', { ...solo.settings, minTurn: 0, lives: 2 });
   sr.start('s');
-  assert.equal(solo.status, 'playing', 'can start alone');
-  assert.equal(solo.round.turnId, 's');
-  await wait(1200);
-  assert.equal(solo.status, 'playing', 'one lost heart does not end a solo game');
-  while (solo.status !== 'ended' && Date.now() < deadline + 30000) await wait(50);
-  assert.equal(solo.status, 'ended');
-  assert.equal(solo.winnerId, null);
-
-  // solo, then a friend joins mid-game: last one flying wins
+  assert.equal(solo.status, 'lobby', 'needs at least 2 players');
+  sr.join('a', 'A');
   sr.start('s');
+  assert.equal(solo.status, 'playing');
   assert.equal(sr.join('f', 'Friend').ok, true);
-  assert.equal(solo.players.length, 2);
+  assert.equal(solo.players.find((p) => p.id === 'f').alive, true);
   while (solo.status !== 'ended') await wait(50);
-  assert.ok(['s', 'f'].includes(solo.winnerId), 'a winner once a friend joined');
+  assert.ok(solo.winnerId, 'there is a winner');
   sr.close();
   console.log(`ALL TESTS PASSED (${booms} booms, ${CATS.length} categories)`);
 })();

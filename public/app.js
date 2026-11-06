@@ -287,9 +287,12 @@ function renderLobby() {
     ? 'Giữ trang này mở trong lúc chơi — máy chủ phòng điều khiển cả ván.'
     : 'Chỉ chủ phòng mới đổi được cài đặt.';
 
+  const enough = state.players.length >= 2;
   $('startBtn').style.display = isHost ? '' : 'none';
+  $('startBtn').disabled = !enough;
+  $('startBtn').textContent = enough ? 'Cất cánh!' : 'Đang chờ người chơi…';
   $('lobbyWait').textContent = isHost
-    ? (state.players.length < 2 ? 'Bay một mình cũng được — bạn bè vào bằng mã bất cứ lúc nào.' : '')
+    ? (enough ? `${state.players.length} người đã lên máy bay — sẵn sàng cất cánh!` : `Gửi mã ${state.code} cho bạn bè. Có thêm 1 người là bắt đầu được.`)
     : 'Đợi chủ phòng bắt đầu…';
 }
 
@@ -487,6 +490,7 @@ function renderEnd() {
   $('scoreList').innerHTML = sorted.map((p) => `<li>${esc(p.name)}${p.id === me ? ' (bạn)' : ''} <b>${p.points} điểm</b></li>`).join('');
   const isHost = state.hostId === me;
   $('againBtn').style.display = isHost ? '' : 'none';
+  $('againBtn').disabled = state.players.length < 2;
   $('againWait').textContent = isHost ? '' : 'Đợi chủ phòng mở ván mới…';
 }
 

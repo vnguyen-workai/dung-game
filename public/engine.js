@@ -140,7 +140,7 @@
     start(id) {
       if (id !== this.hostId || this.status === 'playing') return;
       this.players = this.players.filter((p) => !p.left);
-      if (this.players.length < 1) return;
+      if (this.players.length < 2) return;
       this.status = 'playing';
       this.participants = this.players.length;
       this.winnerId = null;
