@@ -781,9 +781,8 @@ function celebrate(a) {
   const y = Number(seat.dataset.y);
   if (a.tier === 1) { ringAt(x, y, '#ffffff', 90); return; }
   if (a.tier === 2) {
-    ringAt(x, y, '#7dffa0', 140);
-    sparkleAt(x, y, 22, ['#7dffa0', '#ffffff', '#5ff2ff'], 80);
-    showRareBanner(a, 'KHÁ HIẾM!');
+    ringAt(x, y, '#7dffa0', 110);
+    sparkleAt(x, y, 12, ['#7dffa0', '#ffffff'], 55);
     return;
   }
   if (a.tier === 3) {
