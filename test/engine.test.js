@@ -6,20 +6,15 @@ assert.deepEqual([2, 3, 4, 10].map(answersForPlayers), [4, 5, 7, 7]);
 Object.assign(config, { turnFloorMs: 30, popPauseMs: 20, topicIntroMs: 0, legendBonusMs: 0 });
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
-// accent and prefix handling
-const europe = CATS.find((c) => c.id === 'europe-countries');
-assert.equal(findAnswer(europe, 'Pháp', new Set()).label, 'pháp');
-assert.equal(findAnswer(europe, 'nuoc phap', new Set()).label, 'pháp');
-assert.equal(findAnswer(europe, 'xyz không có', new Set()), null);
-const asia = CATS.find((c) => c.id === 'asia-oceania-countries');
-assert.equal(findAnswer(asia, 'NHAT BAN!', new Set()).label, 'nhật bản');
-assert.equal(findAnswer(asia, 'campuchiaa', new Set()).label, 'campuchia');
-const places = CATS.find((c) => c.id === 'east-asia-places');
-assert.equal(findAnswer(places, 'thuong hai', new Set()).label, 'thượng hải');
-assert.equal(findAnswer(places, 'hải phòng', new Set()), null);
-const langs = CATS.find((c) => c.id === 'programming-languages');
-assert.equal(findAnswer(langs, 'C++', new Set()).label, 'c++');
-assert.equal(findAnswer(langs, 'c', new Set()).label, 'c');
+// accent, prefix and typo handling
+const lab = (id, text) => { const r = findAnswer(CATS.find((c) => c.id === id), text, new Set()); return r && r.label; };
+assert.equal(lab('europe-capitals', 'Paris'), 'paris');
+assert.equal(lab('europe-capitals', 'luan don'), 'london');
+assert.equal(lab('asia-capitals', 'BẮC KINH!'), 'bắc kinh');
+assert.equal(lab('asia-capitals', 'thủ đô bắc kinh'), 'bắc kinh');
+assert.equal(lab('europe-cities', 'paris'), null, 'capitals are not "other" European cities');
+assert.equal(lab('europe-cities', 'barcelonaa'), 'barcelona', 'one typo allowed');
+assert.equal(lab('us-cities', 'xyz không có'), null);
 
 (async () => {
   const events = [];
