@@ -51,7 +51,19 @@
     "asia-oceania-countries",
     "snacks",
     "hobbies",
-    "breakfast-foods"
+    "breakfast-foods",
+    "candy-chocolate-brands",
+    "soft-drink-brands",
+    "toy-brands",
+    "superpowers",
+    "mythical-creatures",
+    "tea-coffee-drinks",
+    "world-street-food",
+    "restaurant-chains",
+    "phone-brands-models",
+    "disney-pixar-characters",
+    "marvel-dc-characters",
+    "video-game-characters"
   ],
   "hard": [
     "africa-capitals",
